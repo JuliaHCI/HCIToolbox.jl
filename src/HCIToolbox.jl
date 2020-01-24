@@ -1,5 +1,6 @@
 module HCIToolbox
 
-# Write your package code here.
+include("cube.jl")
+include("decomposition.jl")
 
 end
