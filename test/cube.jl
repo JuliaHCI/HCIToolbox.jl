@@ -8,6 +8,11 @@ fake_cube_ones = DataCube(ones(100, 100, 3), [0, 10, 20])
 
 end
 
+@testset "Cube Shaping" begin
+    # flatten and unflatten
+    @assert DataCube(Matrix(fake_cube_rand), angles(fake_cube_rand)) == fake_cube_rand
+end
+
 @testset "Merging" begin
     @test mean(fake_cube_ones) == ones(100, 100)
     @test median(fake_cube_ones) == ones(100, 100)

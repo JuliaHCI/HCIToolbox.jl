@@ -12,7 +12,12 @@ struct DataCube
 end
 
 function DataCube(m::AbstractMatrix, angles::AbstractVector)
-
+    xy, n = size(m)
+    # Check the input size is square
+    @assert sqrt(xy) % 1 == 0.0
+    newsize = (Int(sqrt(xy)), Int(sqrt(xy)), n)
+    cube = reshape(m, newsize)
+    return DataCube(cube, angles)
 end
 
 function Base.Matrix(d::DataCube)
@@ -21,6 +26,8 @@ function Base.Matrix(d::DataCube)
 end
 
 angles(d::DataCube) = d.angles
+
+Base.:(==)(d1::DataCube, d2::DataCube) =  d1.cube == d2.cube && d1.angles == d2.angles
 
 function derotate!(d::DataCube)
     @inbounds for i in axes(d.cube, 3)
