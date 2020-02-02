@@ -5,6 +5,8 @@ fake_cube_rand = DataCube(rand(100, 100, 3), [0, 10, 20])
 fake_cube_ones = DataCube(ones(100, 100, 3), [0, 10, 20])
 
 @testset "DataCube" begin
+    no_angles = DataCube(ones(100, 100, 3))
+    @test angles(no_angles) == zeros(3)
 
 end
 
