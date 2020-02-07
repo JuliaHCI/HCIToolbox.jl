@@ -1,5 +1,6 @@
 import MultivariateStats
 using Statistics
+using LinearAlgebra: I
 using NMF: nnmf
 
 const mvs = MultivariateStats
@@ -7,9 +8,10 @@ const mvs = MultivariateStats
 export PCA,
        NMF,
        Pairet,
+       Median,
+       Mean,
        design,
        reduce
-
 
 abstract type Design end
 
@@ -25,6 +27,8 @@ The output of a design matrix will be a named tuple with 3 parameters:
 * `S` - The reconstruction of our data cube (usually `A * w`)
 """
 design(::Type{<:Design}, ::DataCube)
+
+# ------------------------------------------------------------------------------
 
 """
     PCA
@@ -59,9 +63,12 @@ function design(::Type{<:PCA}, cube::DataCube, ncomps::Integer = nframes(cube); 
     return (A = A, w = weights, S = reconstructed)
 end
 
-struct NMF <: Design 
-    ncomponents::Integer
-end
+# ------------------------------------------------------------------------------
+
+"""
+    NMF
+"""
+struct NMF <: Design end
 
 function design(::Type{<:NMF}, cube::DataCube, ncomps::Integer = nframes(cube); kwargs...)
     flat_cube = Matrix(cube)
@@ -74,6 +81,11 @@ function design(::Type{<:NMF}, cube::DataCube, ncomps::Integer = nframes(cube); 
     return (A = A, w = weights, S = reconstructed)
 end
 
+# ------------------------------------------------------------------------------
+
+"""
+    Pairet{<:Union{PCA, NMF}}
+"""
 struct Pairet{T <: Design} <: Design end
 
 
@@ -86,6 +98,59 @@ function design(::Type{Pairet{<:D}}, cube::DataCube, ncomps::Integer = nframes(c
     initial_pca = mvs.fit(mvs.PCA, X; maxoutdim = 1)
 end
 
+# ------------------------------------------------------------------------------
+
+"""
+    Median
+
+Design using the median of the cube
+
+# Examples
+```jldoctest
+julia> cube = DataCube(ones(100, 100, 30));
+
+julia> design(Median, cube)
+(A = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0], w = UniformScaling{Bool}(true), S = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0])
+```
+
+# See Also
+[`Mean`](@ref)
+"""
+struct Median <: Design end
+
+function design(::Type{<:Median}, cube::DataCube) 
+    A = S = median(cube)
+    weights = I
+    return (A = A, w = weights, S = S)
+end
+
+
+"""
+    Mean
+
+Design using the mean of the cube
+
+# Examples
+```jldoctest
+julia> cube = DataCube(ones(100, 100, 30));
+
+julia> design(Mean, cube)
+(A = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0], w = UniformScaling{Bool}(true), S = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0])
+```
+
+# See Also
+[`Median`](@ref)
+"""
+struct Mean <: Design end
+    
+function design(::Type{<:Mean}, cube::DataCube) 
+    A = S = mean(cube)
+    weights = I
+    return (A = A, w = weights, S = S)
+end
+
+
+# ------------------------------------------------------------------------------
 
 """
     reduce(::Type{<:Design}, ::DataCube, args...; collapse=median, kwargs...)

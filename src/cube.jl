@@ -6,7 +6,8 @@ export DataCube,
        derotate!,
        derotate,
        mask!,
-       mask
+       mask,
+       coadd
 
 struct DataCube
     cube::Array{<:Number,3}
@@ -101,27 +102,4 @@ end
 Mask the inner-circle of an image with radius `npix`.
 """
 mask(arr::AbstractMatrix, npix) = mask!(deepcopy(arr), npix)
-
-"""
-    coadd(::DataCube, stride::Integer)
-
-Construct a new cube by coadding every `stride` frames together frome a datacube. Note that `stride` must be a factor of the number of frames of the data cube.
-"""
-function coadd(dc::DataCube, stride::Integer)
-    nx, ny, Nf = size(dc)
-    
-    N = length(Nf) / stride
-    @assert isinteger(N)
-    N = Int(N)
-    
-    newcube = similar(dc.cube, nx, ny, N)
-
-    @inbounds for i in 1:N
-        j = (i - 1) * stride + 1
-        j2 = i * stride
-        newcube[:, :, i] .= sum(dc.cube[:, :, j:j2], axis = 3)
-    end
-
-    return DataCube(newcube, angles(dc))
-end
 
