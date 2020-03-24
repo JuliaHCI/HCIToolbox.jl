@@ -5,20 +5,12 @@ using NMF: nnmf
 
 const mvs = MultivariateStats
 
-export PCA,
-       NMF,
-       Pairet,
-       Median,
-       Mean,
-       design,
-       reduce
-
-abstract type Design end
+abstract type HCIAlgorithm end
 
 """
-    design(::Type{<:Design}, ::DataCube, args...; kwargs...)
+    design(::Type{<:HCIAlgorithm}, cube, args...; kwargs...)
 
-Create a design matrix and weights from the given [`DataCube`](@ref). The `kwargs` will vary based on the design algorithm. 
+Create a design matrix and weights from the given [`DataCube`](@ref). The `kwargs` will vary based on the design algorithm.
 
 # Returns
 The output of a design matrix will be a named tuple with 3 parameters:
@@ -26,37 +18,40 @@ The output of a design matrix will be a named tuple with 3 parameters:
 * `w` - The weight vector (the transform of our data cube)
 * `S` - The reconstruction of our data cube (usually `A * w`)
 """
-design(::Type{<:Design}, ::DataCube)
+design
 
 # ------------------------------------------------------------------------------
 
 """
     PCA
 
-Use principal component analysis (PCA) to reduce data cube. `ncomponents` defines how many principal components to use. 
+Use principal component analysis (PCA) to reduce data cube.
 
 Uses [`MultivariateStats.PCA`](https://multivariatestatsjl.readthedocs.io/en/stable/pca.html) for decomposition. See [`MultivariateStats.fit(PCA; ...)`](https://multivariatestatsjl.readthedocs.io/en/stable/pca.html#fit) for keyword arguments
 
 # Arguments
-* `ncomps::Int = nframes(::DataCube)` - The number of components to keep. Cannot be larger than the number of frames in the DataCube.=
+* `ncomps::Int` - The number of components to keep. Cannot be larger than the number of frames in the input cube (default).
 
 # Examples
 
 ```jldoctest
-julia> cube = DataCube(ones(100, 100, 30));
+julia> cube = ones(30, 100, 100);
 
 julia> design(PCA, cube)
 (A = [1.0; 0.0; … ; 0.0; 0.0], w = [0.0 0.0 … 0.0 0.0], S = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0])
 
+julia> design(PCA, cube, 5)
+(A = [1.0; 0.0; … ; 0.0; 0.0], w = [0.0 0.0 … 0.0 0.0], S = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0])
+
 ```
 """
-struct PCA <: Design end
+struct PCA <: HCIAlgorithm end
 
-function design(::Type{<:PCA}, cube::DataCube, ncomps::Integer = nframes(cube); kwargs...)
-    flat_cube = Matrix(cube)
+function design(::Type{<:PCA}, cube::AbstractArray{T,3}, ncomps::Integer = size(cube, 1); kwargs...) where T
+    flat_cube = flatten(cube)
 
     pca = mvs.fit(mvs.PCA, flat_cube; mean = 0, maxoutdim = ncomps)
-    
+
     A = mvs.projection(pca)
     weights = mvs.transform(pca, flat_cube)
     reconstructed = mvs.reconstruct(pca, weights)
@@ -68,13 +63,14 @@ end
 """
     NMF
 """
-struct NMF <: Design end
+struct NMF <: HCIAlgorithm end
 
-function design(::Type{<:NMF}, cube::DataCube, ncomps::Integer = nframes(cube); kwargs...)
-    flat_cube = Matrix(cube)
+function design(::Type{<:NMF}, cube::AbstractArray{T,3}, ncomps::Integer = size(cube, 1); kwargs...) where T
+    flat_cube = flatten(cube)
 
     nmf = nnmf(flat_cube, ncomps; kwargs...)
     nmf.converged || @warn "NMF did not converge, try changing `alg`, `maxiter` or `tol` as keyword wargs."
+
     A = nmf.W
     weights = nmf.H
     reconstructed = nmf.W * nmf.H
@@ -86,16 +82,17 @@ end
 """
     Pairet{<:Union{PCA, NMF}}
 """
-struct Pairet{T <: Design} <: Design end
+struct Pairet{T <: HCIAlgorithm} <: HCIAlgorithm end
 
 
-function design(::Type{Pairet{<:D}}, cube::DataCube, ncomps::Integer = nframes(cube); pca_kwargs...) where {D <: Union{PCA,NMF}}
+function design(::Type{Pairet{<:D}}, cube::AbstractArray{T,3}, ncomps::Integer = size(cube, 1); pca_kwargs...) where {D <: Union{PCA,NMF},T}
     S = []
     reduced = []
-
-    X = Matrix(cube)
+    
+    X = flatten(cube)
 
     initial_pca = mvs.fit(mvs.PCA, X; maxoutdim = 1)
+    # TODO
 end
 
 # ------------------------------------------------------------------------------
@@ -107,7 +104,7 @@ Design using the median of the cube
 
 # Examples
 ```jldoctest
-julia> cube = DataCube(ones(100, 100, 30));
+julia> cube = ones(30, 100, 100);
 
 julia> design(Median, cube)
 (A = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0], w = UniformScaling{Bool}(true), S = [1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0; … ; 1.0 1.0 … 1.0 1.0; 1.0 1.0 … 1.0 1.0])
@@ -116,12 +113,12 @@ julia> design(Median, cube)
 # See Also
 [`Mean`](@ref)
 """
-struct Median <: Design end
+struct Median <: HCIAlgorithm end
 
-function design(::Type{<:Median}, cube::DataCube) 
-    A = S = median(cube)
+function design(::Type{<:Median}, cube::AbstractArray{T,3}) where T
+    out = median(flatten(cube), dims = 1)
     weights = I
-    return (A = A, w = weights, S = S)
+    return (A = out, w = weights, S = out)
 end
 
 
@@ -141,27 +138,31 @@ julia> design(Mean, cube)
 # See Also
 [`Median`](@ref)
 """
-struct Mean <: Design end
-    
-function design(::Type{<:Mean}, cube::DataCube) 
-    A = S = mean(cube)
+struct Mean <: HCIAlgorithm end
+
+function design(::Type{<:Mean}, cube::AbstractArray{T,3}) where T
+    out = mean(flatten(cube), dims = 1)
     weights = I
-    return (A = A, w = weights, S = S)
+    return (A = out, w = weights, S = out)
 end
 
 
 # ------------------------------------------------------------------------------
 
 """
-    reduce(::Type{<:Design}, ::DataCube, args...; collapse=median, kwargs...)
+    reduce(::Type{<:HCIAlgorithm}, cube, angles, args...; method=median, kwargs...)
 
-Using a given `Design`, will reduce the [`DataCube`](@ref) by first finding the approximate reconstruction with [`design`](@ref) and then derotating and collapsing (using whichever function specified by `collapse`). Any `kwargs` will be passed to [`design`](@ref).
+Using a given `HCIAlgorithm`, will reduce the cube by first finding the approximate reconstruction with [`design`](@ref) and then derotating and combining (using whichever function specified by `method`). Any `kwargs` will be passed to [`design`](@ref).
 """
-function Base.reduce(D::Type{<:Design}, cube::DataCube, args...; collapse = median, kwargs...)
+function Base.reduce(D::Type{<:HCIAlgorithm},
+    cube::AbstractArray{T,3},
+    angles::AbstractVector,
+    args...;
+    method = median,
+    kwargs...) where T
     des = design(D, cube, args...; kwargs...)
 
-    flat_residuals = Matrix(cube) .- des.S
-    cube_residuals = DataCube(flat_residuals, angles(cube))
-    collapsed = collapse(derotate!(cube_residuals))
-    return collapsed
+    flat_residuals = flatten(cube) .- des.S
+    cube_residuals = expand(flat_residuals)
+    return combine(derotate!(cube_residuals, angles), method = method)
 end
