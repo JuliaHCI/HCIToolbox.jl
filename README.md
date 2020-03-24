@@ -9,7 +9,7 @@
 
 ## Installation
 
-To install, from Julia (`v"1.3"`)
+From the Julia REPL
 
 ```julia
 julia> ]
