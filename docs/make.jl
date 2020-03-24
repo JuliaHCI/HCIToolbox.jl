@@ -13,7 +13,7 @@ DocMeta.setdocmeta!(HCIToolbox, :DocTestSetup, setup; recursive = true)
 makedocs(;
     modules = [HCIToolbox],
     authors = "Miles Lucas <mdlucas@hawaii.edu>",
-    repo = "https://github.com/juliaastro/HCIToolbox.jl/blob/{commit}{path}#L{line}",
+    repo = "https://github.com/juliahci/HCIToolbox.jl/blob/{commit}{path}#L{line}",
     sitename = "HCIToolbox.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
