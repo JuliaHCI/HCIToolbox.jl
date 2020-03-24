@@ -24,7 +24,6 @@ makedocs(;
         "Home" => "index.md",
         "API/Reference" => "api.md"
     ],
-    strict = true,
 )
 
 deploydocs(;
