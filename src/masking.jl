@@ -2,7 +2,7 @@
 """
 mask_inner!(::AbstractMatrix, npix; fill=NaN)
 
-In-place version of [`mask`](@ref)
+In-place version of [`mask_inner`](@ref)
 """
 function mask_inner!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: AbstractFloat}
     yy = axes(arr, 1)
