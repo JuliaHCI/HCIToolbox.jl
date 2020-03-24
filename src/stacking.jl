@@ -48,9 +48,7 @@ function combine(cube::AbstractArray{T,3}; method = median) where T
     return method(cube, dims = 1)[1, :, :]
 end
 
-function combine(cube::AbstractArray{T,3}, angles::AbstractVector; method = median) where T
-    return method(derotate(cube, angles), dims = 1)
-end
+combine(cube::AbstractArray{T,3}, angles::AbstractVector; method = median) where T = combine(derotate(cube, angles); method = method)
 
 """
     flatten(cube)
@@ -135,8 +133,8 @@ In-place version of [`derotate`](@ref)
 """
 function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector) where {T <: AbstractFloat}
     @inbounds for i in axes(cube, 1)
-        frame = @view cube[:, :, i]
-        cube[:, :, i] .= imrotate(frame, -deg2rad(angles[i]), axes(frame))
+        frame = @view cube[i, :, :]
+        cube[i, :, :] .= imrotate(frame, deg2rad(angles[i]), axes(frame))
     end
     return cube
 end
@@ -156,7 +154,7 @@ This will rotate frame `i` counter-clockwise by the amount `deg2rad(angles[i])`.
 """
 function derotate(cube::AbstractArray{T,3}, angles::AbstractVector) where T
     all(angles .≈ 0) && return cube
-    derotate!(deepcopy(cube), angles)
+    return derotate!(deepcopy(cube), angles)
 end
 
 """
@@ -166,8 +164,8 @@ In-place version of [`derotate`](@ref)
 """
 function rotate!(cube::AbstractArray{T,3}, angles::AbstractVector) where {T <: AbstractFloat}
     @inbounds for i in axes(cube, 1)
-        frame = @view cube[:, :, i]
-        cube[:, :, i] .= imrotate(frame, deg2rad(angles[i]), axes(frame))
+        frame = @view cube[i, :, :]
+        cube[i, :, :] .= imrotate(frame, -deg2rad(angles[i]), axes(frame))
     end
     return cube
 end
@@ -187,5 +185,5 @@ This will rotate frame `i` clockwise by the amount `deg2rad(angles[i])`.
 """
 function rotate(cube::AbstractArray{T,3}, angles::AbstractVector) where T
     all(angles .≈ 0) && return cube
-    rotate!(deepcopy(cube), angles)
+    return rotate!(deepcopy(cube), angles)
 end
