@@ -10,8 +10,8 @@
 
 To install, from Julia (`v"1.3"`)
 
-```julia-repl
-julia>]
+```julia
+julia> ]
 
 (1.3) pkg> add https://github.com/mileslucas/HCIToolbox.jl
 ```
