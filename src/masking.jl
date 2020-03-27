@@ -1,7 +1,7 @@
 using ImageTransformations: center
 
 """
-mask_circle!(::AbstractMatrix, npix; fill=NaN)
+    mask_circle!(::AbstractMatrix, npix; fill=NaN)
 
 In-place version of [`mask_circle`](@ref)
 """
@@ -15,7 +15,7 @@ function mask_circle!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: Abst
 end
 
 """
-mask_circle(::AbstractMatrix, npix; fill=NaN)
+    mask_circle(::AbstractMatrix, npix; fill=NaN)
 
 Mask the inner-circle of an image with radius `npix` with value `fill`. Note that the input type must be compatible with the fill value's type.
 
