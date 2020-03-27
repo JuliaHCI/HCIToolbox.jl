@@ -1,7 +1,7 @@
+using Statistics
+
 ###############################################################################
 # Stacking routines
-
-using Statistics
 
 """
     combine(cube, [angles]; method=median)

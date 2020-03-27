@@ -7,6 +7,8 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/dev)
 
+Common utilities for high-contrast imaging.
+
 ## Installation
 
 From the Julia REPL

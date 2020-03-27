@@ -1,11 +1,11 @@
 using ImageTransformations: center
 
 """
-mask_inner!(::AbstractMatrix, npix; fill=NaN)
+mask_circle!(::AbstractMatrix, npix; fill=NaN)
 
-In-place version of [`mask_inner`](@ref)
+In-place version of [`mask_circle`](@ref)
 """
-function mask_inner!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: AbstractFloat}
+function mask_circle!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: AbstractFloat}
     yy = axes(arr, 1)
     xx = axes(arr, 2)
     yc, xc = center(arr)
@@ -15,11 +15,11 @@ function mask_inner!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: Abstr
 end
 
 """
-mask_inner(::AbstractMatrix, npix; fill=NaN)
+mask_circle(::AbstractMatrix, npix; fill=NaN)
 
 Mask the inner-circle of an image with radius `npix` with value `fill`. Note that the input type must be compatible with the fill value's type.
 
 # See Also
-* [`mask_inner!`](@ref)
+* [`mask_circle!`](@ref)
 """
-mask_inner(arr::AbstractMatrix{<:AbstractFloat}, npix; fill = NaN) = mask_inner!(deepcopy(arr), npix, fill = fill)
+mask_circle(arr::AbstractMatrix{<:AbstractFloat}, npix; fill = NaN) = mask_circle!(deepcopy(arr), npix, fill = fill)
