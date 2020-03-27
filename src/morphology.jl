@@ -77,7 +77,7 @@ julia> flatten(X)
 ```
 
 # See Also
-[`expand`](@ref)
+* [`expand`](@ref)
 """
 flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
 
@@ -110,7 +110,7 @@ julia> expand(X)
 ```
 
 # See Also
-[`flatten`](@ref)
+* [`flatten`](@ref)
 """
 function expand(mat::AbstractMatrix)
     n, z = size(mat)
@@ -148,7 +148,7 @@ Rotates an array using the given angles in degrees.
 This will rotate frame `i` counter-clockwise by the amount `deg2rad(angles[i])`.
 
 # See Also
-[`derotate!`](@ref), [`rotate`](@ref), [`rotate!`](@ref)
+* [`derotate!`](@ref), [`rotate`](@ref), [`rotate!`](@ref)
 """
 function derotate(cube::AbstractArray{T,3}, angles::AbstractVector) where T
     all(angles .≈ 0) && return cube
@@ -177,7 +177,7 @@ Rotates an array using the given angles in degrees.
 This will rotate frame `i` clockwise by the amount `deg2rad(angles[i])`.
 
 # See Also
-[`rotate!`](@ref), [`derotate`](@ref), [`derotate!`](@ref)
+* [`rotate!`](@ref), [`derotate`](@ref), [`derotate!`](@ref)
 """
 function rotate(cube::AbstractArray{T,3}, angles::AbstractVector) where T
     all(angles .≈ 0) && return cube
