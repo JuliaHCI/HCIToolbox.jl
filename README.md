@@ -16,7 +16,7 @@ From the Julia REPL
 ```julia
 julia> ]
 
-(1.3) pkg> add https://github.com/juliahci/HCIToolbox.jl
+(1.3) pkg> add HCIToolbox
 ```
 
 ## Usage
