@@ -5,12 +5,11 @@ using ImageTransformations: center
 
 In-place version of [`mask_circle`](@ref)
 """
-function mask_circle!(arr::AbstractMatrix{T}, npix; fill = NaN) where {T <: AbstractFloat}
-    yy = axes(arr, 1)
-    xx = axes(arr, 2)
+function mask_circle!(arr::AbstractMatrix, npix; fill = NaN)
+    y, x = axes(arr)
     yc, xc = center(arr)
-    d = @. sqrt((xx' - xc)^2 + (yy - yc)^2)
-    @. arr[d < npix] = T(fill)
+    d = @. sqrt((x' - xc)^2 + (y - yc)^2)
+    @. arr[d < npix] = fill
     return arr
 end
 
@@ -29,12 +28,11 @@ mask_circle(arr::AbstractMatrix{<:AbstractFloat}, npix; fill = NaN) = mask_circl
 
 In-place version of [`mask_annulus`](@ref)
 """
-function mask_annulus!(arr::AbstractMatrix{T}, npix_in, npix_out; fill = NaN) where {T <: AbstractFloat}
-    yy = axes(arr, 1)
-    xx = axes(arr, 2)
+function mask_annulus!(arr::AbstractMatrix, npix_in, npix_out; fill = NaN)
+    y, x = axes(arr)
     yc, xc = center(arr)
-    d = @. sqrt((xx' - xc)^2 + (yy - yc)^2)
-    @. arr[npix_in <= d < npix_out] = T(fill)
+    d = @. sqrt((x' - xc)^2 + (y - yc)^2)
+    @. arr[npix_in ≤ d < npix_out] = fill
     return arr
 end
 
@@ -42,7 +40,7 @@ end
 """
     mask_annulus(::AbstractMatrix, npix_in, npix_out; fill=NaN)
 
-Mask the annular region of an image with inner-radius `npix_in`, outer-radius `npix-out` with value `fill`.
+Mask an annular region of an image with inner-radius `npix_in`, outer-radius `npix_out` with value `fill`.
 Note that the input type must be compatible with the fill value's type.
 
 # See Also
