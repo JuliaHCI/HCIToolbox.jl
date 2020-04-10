@@ -1,4 +1,5 @@
 using ImageTransformations: center
+using Compat
 
 """
     mask_circle!(::AbstractMatrix, npix; fill=0)
@@ -19,7 +20,7 @@ end
 Mask the inner-circle of an image with radius `npix` with value `fill`. Note that the input type must be compatible with the fill value's type.
 
 # See Also
-* [`mask_circle!`](@ref)
+[`mask_circle!`](@ref)
 """
 mask_circle(arr::AbstractMatrix, npix; fill = 0) = mask_circle!(deepcopy(arr), npix, fill = fill)
 
@@ -44,7 +45,7 @@ Mask an annular region of an image with inner-radius `npix_in`, outer-radius `np
 Note that the input type must be compatible with the fill value's type.
 
 # See Also
-* [`mask_annulus!`](@ref)
+[`mask_annulus!`](@ref)
 """
 mask_annulus(arr::AbstractMatrix, npix_in, npix_out; fill = 0) = mask_annulus!(deepcopy(arr), npix_in, npix_out, fill = fill)
 

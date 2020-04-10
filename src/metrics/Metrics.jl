@@ -2,8 +2,9 @@ module Metrics
 
 export snr,
        snr_approx,
-       snrmap
-       
+       snrmap,
+       significance
+
 include("snr.jl")
 
 end
