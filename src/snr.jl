@@ -33,9 +33,20 @@ end
 
 _prepmatrix(::Val{snr}, data, fwhm) = data
 function _prepmatrix(::Val{snr_approx}, data, fwhm)
-    kern = mask(CircularAperture(0, 0, fwhm/2))
-    kern ./= sum(kern) # normalize area to 1
-    return imfilter(data, kern, border=Fill())
+    sz = _round_up_to_odd_integer(fwhm)
+    kern = similar(data, sz, sz)
+    ctr = center(kern)
+    for idx in CartesianIndices(kern)
+        d = sqrt((idx[1] - ctr[1])^2 + (idx[2] - ctr[2])^2)
+        kern[idx] = d < fwhm/2 ? 1 : 0
+    end
+    kern ./= sum(kern)
+    return imfilter(data, centered(kern), Fill(0))
+end
+
+function _round_up_to_odd_integer(value)
+    i = ceil(Int, value)
+    return iseven(i) ? i + 1 : i
 end
 
 """
@@ -103,6 +114,8 @@ function snr_approx(data::AbstractMatrix, position, fwhm)
     signal = data[y, x] - mean(arr[ann_ind])
     return signal / noise
 end
+
+snr_approx(data::AbstractMatrix, idx::CartesianIndex, fwhm) = snr_approx(data, (idx.I[2], idx.I[1]), fwhm)
 
 snr_to_sig(snr, separation, fwhm) = @. quantile(Normal(), cdf(TDist(2π * separation / fwhm.- 2), snr))
 sig_to_snr(sig, separation, fwhm) = @. quantile(TDist(2π * separation / fwhm.- 2), cdf(Normal(), sig))
