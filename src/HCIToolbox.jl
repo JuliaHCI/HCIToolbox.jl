@@ -19,4 +19,7 @@ include("morphology.jl")
 # Utilities for mask design
 include("masking.jl")
 
+include("annulus.jl")
+include("snr.jl")
+
 end

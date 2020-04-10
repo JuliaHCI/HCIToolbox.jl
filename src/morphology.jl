@@ -1,4 +1,5 @@
 using Statistics
+using ImageTransformations: imrotate, center
 
 ###############################################################################
 # Stacking routines
@@ -122,9 +123,6 @@ end
 
 ###############################################################################
 # Rotation routines
-
-using ImageTransformations: imrotate, center
-
 
 """
     derotate!(cube, angles)
