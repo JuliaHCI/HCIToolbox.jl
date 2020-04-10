@@ -21,7 +21,7 @@ function snrmap(data::AbstractMatrix{T}, fwhm; snr_func=snr) where T
 
     data = _prepmatrix(Val(snr_func), data, fwhm)
 
-    mask = get_annulus_segments(data, fwhm/2 + 2, width, mode=:mask)
+    mask = get_annulus_segments(data, fwhm/2 + 2, width, mode=:apply)
     coords = findall(!iszero, mask)
 
     Threads.@threads for coord in coords
