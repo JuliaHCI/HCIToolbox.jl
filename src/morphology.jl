@@ -1,5 +1,5 @@
 using Statistics
-using ImageTransformations: imrotate, center
+using ImageTransformations: imrotate, center, Linear
 
 ###############################################################################
 # Stacking routines
@@ -132,7 +132,7 @@ In-place version of [`derotate`](@ref)
 function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector) where {T <: AbstractFloat}
     @inbounds for i in axes(cube, 1)
         frame = @view cube[i, :, :]
-        cube[i, :, :] .= imrotate(frame, deg2rad(angles[i]), axes(frame))
+        cube[i, :, :] .= imrotate(frame, deg2rad(angles[i]), axes(frame))#, Linear(), 0)
     end
     return cube
 end

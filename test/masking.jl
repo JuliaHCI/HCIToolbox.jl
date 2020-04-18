@@ -10,7 +10,12 @@
         A = @inferred mask_circle(ones(100, 100), 5, fill=NaN)
         B = @inferred mask_circle!(ones(100, 100), 5, fill=NaN)
         @test filter(!isnan, A) == filter(!isnan, B)
-        @test_throws MethodError mask_circle(ones(3, 100, 100), 5)
+
+        # cubes
+        A = @inferred mask_circle(ones(3, 100, 100), 5, fill=NaN)
+        B = @inferred mask_circle!(ones(3, 100, 100), 5, fill=NaN)
+        @test filter(!isnan, A) == filter(!isnan, B)
+
 
     end
 

@@ -3,6 +3,7 @@ using Compat
 
 """
     mask_circle!(::AbstractMatrix, npix; fill=0)
+    mask_circle!(::AbstractArray, npix; fill=0)
 
 In-place version of [`mask_circle`](@ref)
 """
@@ -14,15 +15,25 @@ function mask_circle!(arr::AbstractMatrix, npix; fill = 0)
     return arr
 end
 
+function mask_circle!(cube::AbstractArray{T, 3}, npix; fill=0) where T
+    @inbounds for i in axes(cube, 1)
+        slice = @view cube[i, :, :]
+        mask_circle!(slice, npix; fill=fill)
+    end
+    return cube
+end
+
 """
     mask_circle(::AbstractMatrix, npix; fill=0)
+    mask_circle(::AbstractArray, npix; fill=0)
 
-Mask the inner-circle of an image with radius `npix` with value `fill`. Note that the input type must be compatible with the fill value's type.
+Mask the inner-circle of an image with radius `npix` with value `fill`. Note that the input type must be compatible with the fill value's type. If the input is a cube it will mask each frame individually.
 
 # See Also
 [`mask_circle!`](@ref)
 """
 mask_circle(arr::AbstractMatrix, npix; fill = 0) = mask_circle!(deepcopy(arr), npix, fill = fill)
+mask_circle(cube::AbstractArray{T, 3}, npix; fill = 0) where T = mask_circle!(deepcopy(cube), npix, fill=fill)
 
 """
     mask_annulus!(::AbstractMatrix, npix_in, npix_out; fill=NaN)

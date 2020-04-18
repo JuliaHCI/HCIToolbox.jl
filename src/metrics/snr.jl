@@ -4,6 +4,7 @@ using Distributions
 using Statistics
 using ImageFiltering
 using StatsBase: mad
+using HCIToolbox: get_annulus_segments
 
 """
     snrmap(data, fwhm; snr_func=snr)
@@ -118,7 +119,7 @@ snr_approx(data, position, fwhm) = snr_approx!(deepcopy(data), position, fwhm)
 ## These methods need to be below function definitions
 # no prep needed for exact method
 _prepmatrix(::Val{snr}, data, fwhm) = data
-
+_prepmatrix(::Val{snr_approx!}, data, fwhm) = _prepmatrix(Val(snr_approx), data, fwhm)
 # applies a 2D top-hat filter with radius fwhm/2
 function _prepmatrix(::Val{snr_approx}, data, fwhm)
     sz = _round_up_to_odd_integer(fwhm)
