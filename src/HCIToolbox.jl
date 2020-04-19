@@ -1,7 +1,5 @@
 module HCIToolbox
 
-using Reexport
-
 export rotate,
        rotate!,
        derotate,
@@ -23,5 +21,6 @@ include("morphology.jl")
 # Utilities for mask design
 include("masking.jl")
 include("angles.jl")
+include("psf.jl")
 
 end
