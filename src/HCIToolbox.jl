@@ -24,7 +24,4 @@ include("morphology.jl")
 include("masking.jl")
 include("angles.jl")
 
-include("metrics/Metrics.jl")
-@reexport using .Metrics
-
 end
