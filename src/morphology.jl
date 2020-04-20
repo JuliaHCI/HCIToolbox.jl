@@ -187,10 +187,46 @@ shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_fra
 
 ################################
 
-inject_image(frame::AbstractMatrix, img::AbstractMatrix; parametrization...) = inject_image!(deepcopy(frame), img; parametrization...)
+"""
+    inject_image(frame, img; x, y)
+    inject_image(frame, img; r, theta)
+
+Injects `img` into `frame` at the position relative to the center of `frame` given by the keyword arguments.
+
+!!! note
+    Due to the integral nature of array indices, frames or images with even-sized axes will have their center rounded to the nearest integer. This may cause unexpected results for small frames and images.
+
+# Examples
+```jldoctest
+julia> inject_image(zeros(5, 5), ones(1, 1), x=2, y=1)
+5×5 Array{Float64,2}:
+ 0.0  0.0  0.0  1.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+
+julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90)
+5×5 Array{Float64,2}:
+ 0.0  1.0  1.0  1.0  0.0
+ 0.0  1.0  1.0  1.0  0.0
+ 0.0  0.5  0.5  0.5  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+```
+"""
+inject_image(frame::AbstractMatrix, img::AbstractMatrix; parametrization...) = 
+    inject_image!(deepcopy(frame), img; parametrization...)
+
+"""
+    inject_image!(frame, img; x, y)
+    inject_image!(frame, img; r, theta)
+
+In-place version of [`inject_image`](@ref) which modifies `frame`.
+"""
 function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametrization...) where T
     # get the correct translation depending on (x,y) vs (r, θ)
-    tform = _get_tform((;parametrization...))
+    tform = _get_translation((;parametrization...))
 
     # Create a view of `img` that is zero-padded to match `frame` in size
     ctr = center(frame)
@@ -201,15 +237,18 @@ function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametriz
     shifted_img = warpedview(pimg, recenter(tform, ctr), axes(frame), Linear(), zero(T))
     return frame .+= shifted_img
 end
+#=
+These functions allow dispatching on keyword arguments to inject_image!
 
-_get_tform(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
-_get_tform(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)
+The NamedTuples should constand fold during compilation, incurring no function calls for dispatching. Note the discrepancy in image coordinates to cartesian coordinates in the Translations
+=#
+_get_translation(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
+_get_translation(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)
 
-function _get_tform(pars::NamedTuple{(:r, :theta)})
+function _get_translation(pars::NamedTuple{(:r, :theta)})
+    # convert to position angle in radians
     angle = deg2rad(pars.theta - 90)
     new_center = Polar(promote(pars.r, angle)...)
    return new_center |> CartesianFromPolar() |> Translation
 end
-_get_tform(pars::NamedTuple{(:theta, :r)}) = _get_tform((r=pars[2], theta=pars[1]))
-_get_tform(pars::NamedTuple{(:r, :θ)}) = _get_tform((r=pars[1], theta=pars[2]))
-_get_tform(pars::NamedTuple{(:θ, :r)}) = _get_tform((r=pars[2], theta=pars[1]))
+_get_translation(pars::NamedTuple{(:theta, :r)}) = _get_translation((r=pars[2], theta=pars[1]))
