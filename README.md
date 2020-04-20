@@ -21,7 +21,7 @@ julia> ]
 
 ## Usage
 
-Please see the [documentation](https://juliahci.github.io/HCIToolbox.jl/dev/) for usage, tutorials, and api reference.
+Please see the [documentation](https://juliahci.github.io/HCIToolbox.jl/dev/) for usage, tutorials, and API reference.
 
 ## License
 
