@@ -12,7 +12,3 @@ For now, here is a dump of all documented functions and types.
 ```@autodocs
 Modules = [HCIToolbox]
 ```
-
-```@autodocs
-Modules = [HCIToolbox.Metrics]
-```
