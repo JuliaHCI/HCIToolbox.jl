@@ -1,5 +1,7 @@
 using Statistics
-using ImageTransformations: imrotate, center, Linear
+using ImageTransformations
+using CoordinateTransformations
+using PaddedViews
 
 ###############################################################################
 # Stacking routines
@@ -167,3 +169,47 @@ function derotate(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) wher
     all(angles .≈ 0) && return cube
     return derotate!(deepcopy(cube), angles, fill=fill)
 end
+
+#################################
+
+function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
+    ctr = center(frame)
+    tform = recenter(Translation((dy, dx)), ctr)
+    return warp(frame, tform, axes(frame), fill)
+end
+
+function shift_frame!(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T
+    @inbounds for idx in axes(cube, 1)
+        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx, dy; fill=fill)
+    end
+end
+shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dx, dy; fill=fill)
+
+################################
+
+inject_image(frame::AbstractMatrix, img::AbstractMatrix; parametrization...) = inject_image!(deepcopy(frame), img; parametrization...)
+function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametrization...) where T
+    # get the correct translation depending on (x,y) vs (r, θ)
+    tform = _get_tform((;parametrization...))
+
+    # Create a view of `img` that is zero-padded to match `frame` in size
+    ctr = center(frame)
+    cy, cx = @. round.(Int, ctr) - 1
+    pimg = PaddedView(0, img, size(frame), (cy, cx))
+
+    # shift image with zero padding and add to frame
+    shifted_img = warpedview(pimg, recenter(tform, ctr), axes(frame), Linear(), zero(T))
+    return frame .+= shifted_img
+end
+
+_get_tform(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
+_get_tform(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)
+
+function _get_tform(pars::NamedTuple{(:r, :theta)})
+    angle = deg2rad(pars.theta - 90)
+    new_center = Polar(promote(pars.r, angle)...)
+   return new_center |> CartesianFromPolar() |> Translation
+end
+_get_tform(pars::NamedTuple{(:theta, :r)}) = _get_tform((r=pars[2], theta=pars[1]))
+_get_tform(pars::NamedTuple{(:r, :θ)}) = _get_tform((r=pars[1], theta=pars[2]))
+_get_tform(pars::NamedTuple{(:θ, :r)}) = _get_tform((r=pars[2], theta=pars[1]))
