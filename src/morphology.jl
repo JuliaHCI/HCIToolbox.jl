@@ -2,12 +2,14 @@ using Statistics
 using ImageTransformations
 using CoordinateTransformations
 using PaddedViews
+using Interpolations
 
 ###############################################################################
 # Stacking routines
 
 """
-    collapse(cube, [angles]; method=median, deweight=true, fill=0)
+    collapse(cube; method=median, fill=0)
+    collapse(cube, angles; method=median, deweight=true, fill=0)
 
 Combine all the frames of a cube using `method`. If `angles` are provided, will use [`derotate`](@ref) before combining.
 
@@ -72,7 +74,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     all(varframe .≈ 0) && return mean(derotate!(cube, angles; fill=fill); dims=1)[1, :, :]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
-    for idx in axes(vc, 1)
+    for idx in axes(varcube, 1)
         @inbounds varcube[idx, :, :] .= varframe[1, :, :]
     end
     # derotate both cubes and perform a weighted sum
@@ -150,9 +152,9 @@ end
 In-place version of [`derotate`](@ref) which modifies `cube`.
 """
 function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
-    @inbounds for i in axes(cube, 1)
+    for i in axes(cube, 1)
         frame = @view cube[i, :, :]
-        cube[i, :, :] .= imrotate(frame, deg2rad(angles[i]), axes(frame), Linear(), fill)
+        frame .= imrotate(frame, deg2rad(-angles[i]), axes(frame), Linear(), fill)
     end
     return cube
 end
@@ -163,7 +165,24 @@ end
 
 Rotates an array using the given angles in degrees.
 
-This will rotate frame `i` counter-clockwise by the amount `deg2rad(angles[i])`. Any values outside the original axes will be replaced with `fill`
+This will rotate frame `i` counter-clockwise. Any values outside the original axes will be replaced with `fill`. If the given angles are true parallactic angles, the resultant cube will have each frame aligned with top pointing North.
+
+# Examples
+```jldoctest
+julia> X = zeros(1, 3, 3); X[1, 1, 2] = 1;
+
+julia> X[1, :, :]
+3×3 Array{Float64,2}:
+ 0.0  1.0  0.0
+ 0.0  0.0  0.0
+ 0.0  0.0  0.0
+
+julia> derotate(X, [90])[1, :, :]
+3×3 Array{Float64,2}:
+ 0.0       0.0          0.0
+ 0.999974  0.0          0.0
+ 0.0       8.71942e-15  0.0
+```
 
 # See Also
 [`derotate!`](@ref), [`rotate`](@ref), [`rotate!`](@ref)
