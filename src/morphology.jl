@@ -13,25 +13,19 @@ If `deweight` is true, the method of Bottom et al. 2017 will be used in which th
 
 # Examples
 ```jldoctest
-julia> X = ones(2, 3, 3)
-2×3×3 Array{Float64,3}:
-[:, :, 1] =
- 1.0  1.0  1.0
- 1.0  1.0  1.0
-
-[:, :, 2] =
- 1.0  1.0  1.0
- 1.0  1.0  1.0
-
-[:, :, 3] =
- 1.0  1.0  1.0
- 1.0  1.0  1.0
+julia> X = ones(2, 3, 3);
 
 julia> collapse(X)
 3×3 Array{Float64,2}:
  1.0  1.0  1.0
  1.0  1.0  1.0
  1.0  1.0  1.0
+
+julia> collapse(X, [0, 90])
+3×3 Array{Float64,2}:
+ 0.5  1.0  0.5
+ 1.0  1.0  1.0
+ 0.5  1.0  0.5
 
 julia> collapse(X, [0, 90], fill=NaN)
 3×3 Array{Float64,2}:
@@ -63,9 +57,9 @@ function collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=medi
                       collapse(derotate!(cube, angles, fill=fill); method = method)
 end
 
+# deweight using Bottom et al. 2017
  _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T = 
     _collapse_deweighted!(deepcopy(cube), angles; fill=fill)
-# deweight using Bottom et al. 2017
 function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
     varframe = var(cube, dims=1)
 
@@ -89,17 +83,7 @@ Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where e
 
 # Examples
 ```jldoctest
-julia> X = ones(3, 2, 2)
-3×2×2 Array{Float64,3}:
-[:, :, 1] =
- 1.0  1.0
- 1.0  1.0
- 1.0  1.0
-
-[:, :, 2] =
- 1.0  1.0
- 1.0  1.0
- 1.0  1.0
+julia> X = ones(3, 2, 2);
 
 julia> matrix(X)
 3×4 Array{Float64,2}:
