@@ -13,7 +13,9 @@ export derotate,
        normalize_par_angles, 
        normalize_par_angles!,
        inject_image,
-       inject_image!
+       inject_image!,
+       shift_frame,
+       shift_frame!
 
 
 # Utilities for dealing with cubes like derotating and median combining

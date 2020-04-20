@@ -11,7 +11,10 @@ using PaddedViews
 
 Combine all the frames of a cube using `method`. If `angles` are provided, will use [`derotate`](@ref) before combining.
 
-If `deweight` is true, the method of Bottom et al. 2017 will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. `fill` will be passed to [`derotate`](@ref).
+If `deweight` is true, the method of _Bottom et al. 2017_ will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. `fill` will be passed to [`derotate`](@ref).
+
+### References
+1. [Bottom et al. 2017 "Noise-weighted Angular Differential Imaging"](https://ui.adsabs.harvard.edu/abs/2017RNAAS...1...30B)
 
 # Examples
 ```jldoctest
@@ -144,7 +147,7 @@ end
 """
     derotate!(cube, angles; fill=0)
 
-In-place version of [`derotate`](@ref)
+In-place version of [`derotate`](@ref) which modifies `cube`.
 """
 function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
     @inbounds for i in axes(cube, 1)
@@ -172,18 +175,72 @@ end
 
 #################################
 
+"""
+    shift_frame(frame, dx, dy; fill=0)
+    shift_frame(frame, dpos; fill=0)
+
+Shifts `frame` by `dx` and `dy` with bilinear interpolation. If necessary, empty indices will be filled with `fill`.
+
+# Examples
+```jldoctest
+julia> shift_frame([0 0 0; 0 1 0; 0 0 0], 1, -1)
+3×3 Array{Float64,2}:
+ 0.0  0.0  0.0
+ 0.0  0.0  0.0
+ 0.0  0.0  1.0
+
+julia> shift_frame(ans, (-1, 1), fill=NaN)
+ 3×3 Array{Float64,2}:
+    0.0    0.0  NaN
+    0.0    1.0  NaN
+  NaN    NaN    NaN
+```
+"""
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
     ctr = center(frame)
-    tform = recenter(Translation((dy, dx)), ctr)
+    tform = Translation(dy, -dx)
     return warp(frame, tform, axes(frame), fill)
 end
+shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(frame, dpos...; fill=fill)
 
-function shift_frame!(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T
+"""
+    shift_frame(cube, dx, dy; fill=0)
+    shift_frame(cube, dpos; fill=0)
+
+Shift each frame of `cube` by `dx` and `dy`, which can be integers or vectors. The change in position can be given as some iterable, which can also be put into a vector to use across the cube. If a frame is shifted outside its axes, the empty indices will be filled with `fill`.
+
+# See Also
+[`shift_frame!`](@ref)
+"""
+shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dx, dy; fill=fill)
+shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dpos; fill=fill)
+
+"""
+    shift_frame!(cube, dx, dy; fill=0)
+    shift_frame!(cube, dpos; fill=0)
+
+In-place version of [`shift_frame`](@ref) which modifies `cube`.
+"""
+function shift_frame!(cube::AbstractArray{T, 3}, dx::Number, dy::Number; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 1)
         cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx, dy; fill=fill)
     end
 end
-shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dx, dy; fill=fill)
+
+shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Number}; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
+
+function shift_frame!(cube::AbstractArray{T, 3}, dx::AbstractVector, dy::AbstractVector; fill=zero(T)) where T
+    @inbounds for idx in axes(cube, 1)
+        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx[idx], dy[idx]; fill=fill)
+    end
+end
+
+function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:AbstractVector}; fill=zero(T)) where T
+    @inbounds for idx in axes(cube, 1)
+        dx, dy = dpos[idx]
+        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx, dy; fill=fill)
+    end
+end
 
 ################################
 
@@ -191,7 +248,7 @@ shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_fra
     inject_image(frame, img; x, y)
     inject_image(frame, img; r, theta)
 
-Injects `img` into `frame` at the position relative to the center of `frame` given by the keyword arguments.
+Injects `img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized. 
 
 !!! note
     Due to the integral nature of array indices, frames or images with even-sized axes will have their center rounded to the nearest integer. This may cause unexpected results for small frames and images.
