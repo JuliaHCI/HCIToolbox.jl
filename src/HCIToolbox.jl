@@ -1,12 +1,11 @@
 module HCIToolbox
 
-export rotate,
-       rotate!,
-       derotate,
+export derotate,
        derotate!,
-       flatten,
-       expand,
-       combine,
+       cube,
+       matrix,
+       collapse,
+       collapse!,
        mask_circle!,
        mask_circle,
        mask_annulus!,
