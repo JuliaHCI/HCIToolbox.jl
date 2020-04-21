@@ -302,21 +302,42 @@ In-place version of [`inject_image`](@ref) which modifies `frame`.
 """
 function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametrization...) where T
     # get the correct translation depending on (x,y) vs (r, θ)
-    tform = _get_translation((;parametrization...))
-
-    # Create a view of `img` that is zero-padded to match `frame` in size
-    ctr = center(frame)
-    cy, cx = @. round.(Int, ctr) - 1
-    pimg = PaddedView(0, img, size(frame), (cy, cx))
-
-    # shift image with zero padding and add to frame
-    shifted_img = warpedview(pimg, recenter(tform, ctr), axes(frame), Linear(), zero(T))
+    tform = Translation(center(img) - center(frame)) ∘ _get_translation((;parametrization...))
+    # shift image with zero padding and add to frame, use view to avoid allocation
+    shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
+    @show shifted_img
     return frame .+= shifted_img
 end
+
+"""
+    inject_image(cube, img, [angles]; x, y)
+    inject_image(cube, img, [angles]; r, theta)
+
+Injects `img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent frame being rotated by `-angles`. This is useful for fake companion injection.
+"""
+inject_image(cube::AbstractArray{T,3}, img; parametrization...) where T =
+    inject_image!(deepcopy(cube), img; parametrization...)
+
+function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix; parametrization...) where T
+    for idx in axes(cube, 1)
+        frame = @view cube[idx, :, :]
+        inject_image!(frame, img; parametrization...)
+    end
+    return cube
+end
+
+function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; parametrization...) where T
+    for idx in axes(cube, 1)
+        frame = @view cube[idx, :, :]
+        derotate!(inject_image!(frame, img; parametrization...), -angles[idx])
+    end
+    return cube
+end
+
 #=
 These functions allow dispatching on keyword arguments to inject_image!
 
-The NamedTuples should constand fold during compilation, incurring no function calls for dispatching. Note the discrepancy in image coordinates to cartesian coordinates in the Translations
+The NamedTuples should constand fold during compilation, incurring no function calls for dispatching. Note the discrepancy in image coordinates to cartesian coordinates in the Translationx
 =#
 _get_translation(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
 _get_translation(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)

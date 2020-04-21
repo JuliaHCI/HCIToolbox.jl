@@ -58,3 +58,23 @@ end
     @test collapse(ones(10, 512, 512), angles) == mean(derotate!(ones(10, 512, 512), angles), dims=1)[1, :, :]
 
 end
+
+# TODO WHY IS THIS ALL BROKEN???????
+@testset "image injection" begin
+    # frame = zeros(3, 3)
+    # img = ones(1, 1)
+    # @test inject_image(frame, img, x = 0, y = 0)[2, 2] == 1
+    # @test inject_image(frame, img, x = 1, y = -1)[3, 3] == 1
+    # @test inject_image(frame, img, x = -1, y = 1)[1, 1] == 1
+    # @test inject_image(frame, img, x = 2, y = 2) == zeros(3, 3)
+
+    # for (x, y) in zip([-1, 0, 0, 1], [0, 1, -1, 0]), frame in [zeros(3, 3), zeros(4, 4)], img in [ones(1, 1), ones(2, 2)]
+    #     # works in both coordinate systems
+    #     r = hypot(x, y)
+    #     theta = atan(y, x)
+    #     @test inject_image(frame, img; x=x, y=y) ≈ inject_image(frame, img; r=r, theta=theta)
+    #     # kwarg position invariance
+    #     @test inject_image(frame, img; x=x, y=y) == inject_image(frame, img; y=y, x=x)
+    #     @test inject_image(frame, img; r=r, theta=theta) == inject_image(frame, img; theta=theta, r=r)
+    # end
+end
