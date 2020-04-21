@@ -305,7 +305,6 @@ function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametriz
     tform = Translation(center(img) - center(frame)) ∘ _get_translation((;parametrization...))
     # shift image with zero padding and add to frame, use view to avoid allocation
     shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
-    @show shifted_img
     return frame .+= shifted_img
 end
 
