@@ -1,20 +1,20 @@
 @testset "matrix/cube" begin
 
-    @testset "tomatrix" begin
-        @test tomatrix(ones(3, 4, 4)) == ones(3, 16)
+    @testset "flatten" begin
+        @test flatten(ones(3, 4, 4)) == ones(3, 16)
 
-        @test_throws MethodError tomatrix(ones(3, 4))
+        @test_throws MethodError flatten(ones(3, 4))
     end
 
-    @testset "tocube" begin
-        @test tocube(ones(3, 16)) == ones(3, 4, 4)
+    @testset "expand" begin
+        @test expand(ones(3, 16)) == ones(3, 4, 4)
 
-        @test_throws ErrorException tocube(ones(3, 15))
+        @test_throws ErrorException expand(ones(3, 15))
     end
 
     # Simple regression
     X = rand(10, 512, 512)
-    @test tocube(tomatrix(X)) == X
+    @test expand(flatten(X)) == X
 end
 
 @testset "derotate" begin

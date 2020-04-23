@@ -87,7 +87,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
 end
 
 """
-    tomatrix(cube)
+    flatten(cube)
 
 Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where each row is a flattened image from the cube.
 
@@ -95,7 +95,7 @@ Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where e
 ```jldoctest
 julia> X = ones(3, 2, 2);
 
-julia> tomatrix(X)
+julia> flatten(X)
 3×4 Array{Float64,2}:
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
@@ -103,12 +103,12 @@ julia> tomatrix(X)
 ```
 
 # See Also
-[`tocube`](@ref)
+[`expand`](@ref)
 """
-tomatrix(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
+flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
 
 """
-    tocube(matrix)
+    expand(matrix)
 
 Given a matrix of size `(n, z)`, returns a cube of size `(n, x, x)` where `x=√z`.
 
@@ -122,7 +122,7 @@ julia> X = ones(3, 4)
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
 
-julia> tocube(X)
+julia> expand(X)
 3×2×2 Array{Float64,3}:
 [:, :, 1] =
  1.0  1.0
@@ -136,9 +136,9 @@ julia> tocube(X)
 ```
 
 # See Also
-[`tomatrix`](@ref)
+[`flatten`](@ref)
 """
-function tocube(mat::AbstractMatrix)
+function expand(mat::AbstractMatrix)
     n, z = size(mat)
     x = sqrt(z)
     isinteger(x) || error("Array of size $((n, x, x)) is not compatible with input matrix of size $(size(mat)).")
@@ -182,9 +182,9 @@ julia> X[1, :, :]
 
 julia> derotate(X, [90])[1, :, :]
 3×3 Array{Float64,2}:
- 0.0       0.0          0.0
- 0.999974  0.0          0.0
- 0.0       8.71942e-15  0.0
+ 0.0  3.22941e-16  0.0
+ 0.0  0.0          0.999991
+ 0.0  0.0          0.0
 ```
 
 # See Also
