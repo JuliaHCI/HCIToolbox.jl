@@ -271,20 +271,26 @@ end
 
 Injects `A * img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized. 
 
+### Coordinate System
+
+The positions are decided in this way:
+* `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up. 
+* `r, theta` - Parsed as polar coordinates from the center of the image. `theta` is a position angle.
+
 !!! note
     Due to the integral nature of array indices, frames or images with even-sized axes will have their center rounded to the nearest integer. This may cause unexpected results for small frames and images.
 
 # Examples
 ```jldoctest
-julia> inject_image(zeros(5, 5), ones(1, 1), x=2, y=1)
+julia> inject_image(zeros(5, 5), ones(1, 1), A=2, x=2, y=1) # image coordinates
 5×5 Array{Float64,2}:
- 0.0  0.0  0.0  1.0  0.0
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
+ 0.0  2.0  0.0  0.0  0.0
 
-julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90)
+julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
 5×5 Array{Float64,2}:
  0.0  1.0  1.0  1.0  0.0
  0.0  1.0  1.0  1.0  0.0
