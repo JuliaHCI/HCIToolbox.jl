@@ -1,7 +1,6 @@
 using Statistics
 using ImageTransformations
 using CoordinateTransformations
-using PaddedViews
 using Interpolations
 
 ###############################################################################
@@ -75,7 +74,10 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     for idx in axes(varcube, 1)
-        @inbounds varcube[idx, :, :] .= varframe[1, :, :]
+        frame = @view varcube[idx, :, :]
+        for ij in eachindex(frame)
+            frame[ij] = max(one(T), varframe[ij])
+        end
     end
     # derotate both cubes and perform a weighted sum
     derotate!(cube, angles; fill=fill)
@@ -316,6 +318,8 @@ Injects `img` into each frame of `cube` at the position given by the keyword arg
 """
 inject_image(cube::AbstractArray{T,3}, img; parametrization...) where T =
     inject_image!(deepcopy(cube), img; parametrization...)
+inject_image(cube::AbstractArray{T,3}, img, angles; parametrization...) where T =
+    inject_image!(deepcopy(cube), img, angles; parametrization...)
 
 function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix; parametrization...) where T
     for idx in axes(cube, 1)
@@ -328,7 +332,8 @@ end
 function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; parametrization...) where T
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
-        derotate!(inject_image!(frame, img; parametrization...), -angles[idx])
+        inject_image!(frame, img; parametrization...)
+        frame .= imrotate(frame, deg2rad(angles[idx]), axes(frame), Linear(), zero(T))
     end
     return cube
 end
@@ -336,14 +341,16 @@ end
 #=
 These functions allow dispatching on keyword arguments to inject_image!
 
-The NamedTuples should constand fold during compilation, incurring no function calls for dispatching. Note the discrepancy in image coordinates to cartesian coordinates in the Translationx
+The NamedTuples should constand fold during compilation, incurring no 
+function calls for dispatching. Note the discrepancy in image coordinates 
+to cartesian coordinates in the Translation
 =#
 _get_translation(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
 _get_translation(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)
 
 function _get_translation(pars::NamedTuple{(:r, :theta)})
     # convert to position angle in radians
-    angle = deg2rad(pars.theta - 90)
+    angle = deg2rad(-pars.theta - 90)
     new_center = Polar(promote(pars.r, angle)...)
    return new_center |> CartesianFromPolar() |> Translation
 end
