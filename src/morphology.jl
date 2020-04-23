@@ -218,7 +218,6 @@ julia> shift_frame(ans, (-1, 1), fill=NaN)
 ```
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
-    ctr = center(frame)
     tform = Translation(-dy, -dx)
     return warp(frame, tform, axes(frame), fill)
 end
@@ -228,7 +227,7 @@ shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(
     shift_frame(cube, dx, dy; fill=0)
     shift_frame(cube, dpos; fill=0)
 
-Shift each frame of `cube` by `dx` and `dy`, which can be integers or vectors. The change in position can be given as some iterable, which can also be put into a vector to use across the cube. If a frame is shifted outside its axes, the empty indices will be filled with `fill`.
+Shift each frame of `cube` by `dx` and `dy`, which can be integers or vectors. The change in position can be given as a tuple, which can also be put into a vector to use across the cube. If a frame is shifted outside its axes, the empty indices will be filled with `fill`.
 
 # See Also
 [`shift_frame!`](@ref)
@@ -244,23 +243,32 @@ In-place version of [`shift_frame`](@ref) which modifies `cube`.
 """
 function shift_frame!(cube::AbstractArray{T, 3}, dx::Number, dy::Number; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 1)
-        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx, dy; fill=fill)
+        frame = @view cube[idx, :, :]
+        tform = Translation(-dy, -dx)
+        frame .= warp(frame, tform, axes(frame), fill)
     end
+    return cube
 end
 
-shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Number}; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
+shift_frame!(cube::AbstractArray{T, 3}, dpos::Tuple; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
 
 function shift_frame!(cube::AbstractArray{T, 3}, dx::AbstractVector, dy::AbstractVector; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 1)
-        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx[idx], dy[idx]; fill=fill)
+        frame = @view cube[idx, :, :]
+        tform = Translation(-dy[idx], -dx[idx])
+        frame .= warp(frame, tform, axes(frame), fill)
     end
+    return cube
 end
 
-function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:AbstractVector}; fill=zero(T)) where T
+function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Tuple}; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 1)
-        dx, dy = dpos[idx]
-        cube[idx, :, :] .= shift_frame(cube[idx, :, :], dx, dy; fill=fill)
+        frame = @view cube[idx, :, :]
+        dy, dx = dpos[idx]
+        tform = Translation(-dy, -dx)
+        frame .= warp(frame, tform, axes(frame), fill)
     end
+    return cube
 end
 
 ################################
@@ -311,8 +319,8 @@ In-place version of [`inject_image`](@ref) which modifies `frame`.
 function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; A=1, parametrization...) where T
     # get the correct translation depending on (x,y) vs (r, θ)
     tform = _get_translation((;parametrization...), frame, img)
-    # shift image with zero padding and add to frame, use view to avoid allocation
-    shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
+    # shift image with zero padding and add to frame
+    shifted_img = warp(img, tform, axes(frame), Linear(), zero(T))
     return @. frame += A * shifted_img
 end
 
@@ -348,8 +356,8 @@ function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::Ab
         rot = LinearMap(RotMatrix{2}(-deg2rad(angles[idx])))
         # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
         tform = rot ∘ _get_translation((;parametrization...), frame, img)
-        # transform image with zero padding and add to frame; use view to avoid allocation
-        shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
+        # transform image with zero padding and add to frame
+        shifted_img = warp(img, tform, axes(frame), Linear(), zero(T))
         @. frame += A * shifted_img
     end
     return cube
