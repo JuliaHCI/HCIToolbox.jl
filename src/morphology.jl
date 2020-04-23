@@ -266,10 +266,10 @@ end
 ################################
 
 """
-    inject_image(frame, img; x, y)
-    inject_image(frame, img; r, theta)
+    inject_image(frame, img; x, y, A=1)
+    inject_image(frame, img; r, theta, A=1)
 
-Injects `img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized. 
+Injects `A * img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized. 
 
 !!! note
     Due to the integral nature of array indices, frames or images with even-sized axes will have their center rounded to the nearest integer. This may cause unexpected results for small frames and images.
@@ -293,47 +293,59 @@ julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90)
  0.0  0.0  0.0  0.0  0.0
 ```
 """
-inject_image(frame::AbstractMatrix, img::AbstractMatrix; parametrization...) = 
-    inject_image!(deepcopy(frame), img; parametrization...)
+inject_image(frame::AbstractMatrix, img::AbstractMatrix; A=1, parametrization...) = 
+    inject_image!(deepcopy(frame), img; A=A, parametrization...)
 
 """
-    inject_image!(frame, img; x, y)
-    inject_image!(frame, img; r, theta)
+    inject_image!(frame, img; x, y, A=1)
+    inject_image!(frame, img; r, theta, A=1)
 
 In-place version of [`inject_image`](@ref) which modifies `frame`.
 """
-function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; parametrization...) where T
+function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; A=1, parametrization...) where T
     # get the correct translation depending on (x,y) vs (r, θ)
-    tform = Translation(center(img) - center(frame)) ∘ _get_translation((;parametrization...))
+    tform = _get_translation((;parametrization...), frame, img)
     # shift image with zero padding and add to frame, use view to avoid allocation
     shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
-    return frame .+= shifted_img
+    return @. frame += A * shifted_img
 end
 
 """
-    inject_image(cube, img, [angles]; x, y)
-    inject_image(cube, img, [angles]; r, theta)
+    inject_image(cube, img, [angles]; x, y, A=1)
+    inject_image(cube, img, [angles]; r, theta, A=1)
 
-Injects `img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent frame being rotated by `-angles`. This is useful for fake companion injection.
+Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles`. This is useful for fake companion injection.
 """
-inject_image(cube::AbstractArray{T,3}, img; parametrization...) where T =
-    inject_image!(deepcopy(cube), img; parametrization...)
-inject_image(cube::AbstractArray{T,3}, img, angles; parametrization...) where T =
-    inject_image!(deepcopy(cube), img, angles; parametrization...)
+inject_image(cube::AbstractArray{T,3}, img; A=1, parametrization...) where T =
+    inject_image!(deepcopy(cube), img; A=A, parametrization...)
+inject_image(cube::AbstractArray{T,3}, img, angles; A=1, parametrization...) where T =
+    inject_image!(deepcopy(cube), img, angles; A=A, parametrization...)
 
-function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix; parametrization...) where T
+"""
+    inject_image!(cube, img, [angles]; x, y, A=1)
+    inject_image!(cube, img, [angles]; r, theta, A=1)
+
+In-place version of [`inject_image`](@ref) which modifies `cube`.
+"""
+function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix; A=1, parametrization...) where T
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
-        inject_image!(frame, img; parametrization...)
+        inject_image!(frame, img; A=A, parametrization...)
     end
     return cube
 end
 
-function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; parametrization...) where T
+function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; A=1, parametrization...) where T
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
-        inject_image!(frame, img; parametrization...)
-        frame .= imrotate(frame, deg2rad(angles[idx]), axes(frame), Linear(), zero(T))
+        # period discretization of frame angle
+        θ = floor(deg2rad(angles[idx]) * typemax(Int16)) / typemax(Int16)
+        rot = LinearMap(RotMatrix{2}(-θ))
+        # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
+        tform = rot ∘ _get_translation((;parametrization...), frame, img)
+        # transform image with zero padding and add to frame; use view to avoid allocation
+        shifted_img = warpedview(img, tform, axes(frame), Linear(), zero(T))
+        @. frame += A * shifted_img
     end
     return cube
 end
@@ -345,13 +357,15 @@ The NamedTuples should constand fold during compilation, incurring no
 function calls for dispatching. Note the discrepancy in image coordinates 
 to cartesian coordinates in the Translation
 =#
-_get_translation(pars::NamedTuple{(:x, :y)}) = Translation(pars.y, -pars.x)
-_get_translation(pars::NamedTuple{(:y, :x)}) = Translation(pars.y, -pars.x)
+_get_translation(pars::NamedTuple{(:x, :y)}, frame, img) =  Translation(-pars.y, -pars.x - 1) ∘ Translation(center(img))
+_get_translation(pars::NamedTuple{(:y, :x)}, frame, img) = _get_translation((x=pars.x, y=pars.y), frame, img)
 
-function _get_translation(pars::NamedTuple{(:r, :theta)})
+function _get_translation(pars::NamedTuple{(:r, :theta)}, frame, img)
     # convert to position angle in radians
-    angle = deg2rad(-pars.theta - 90)
+    angle = -deg2rad(pars.theta + 90)
     new_center = Polar(promote(pars.r, angle)...)
-   return new_center |> CartesianFromPolar() |> Translation
+    # the translation
+    trans = new_center |> CartesianFromPolar() |> Translation
+    return trans ∘ Translation(center(img) - center(frame))
 end
-_get_translation(pars::NamedTuple{(:theta, :r)}) = _get_translation((r=pars[2], theta=pars[1]))
+_get_translation(pars::NamedTuple{(:theta, :r)}, frame, img) = _get_translation((r=pars[2], theta=pars[1]), frame, img)
