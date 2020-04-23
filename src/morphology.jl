@@ -74,15 +74,16 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     for idx in axes(varcube, 1)
-        frame = @view varcube[idx, :, :]
-        for ij in eachindex(frame)
-            frame[ij] = max(one(T), varframe[ij])
-        end
+        varcube[idx, :, :] .= varframe[1, :, :]
     end
     # derotate both cubes and perform a weighted sum
     derotate!(cube, angles; fill=fill)
     derotate!(varcube, angles; fill=fill)
-    return sum(cube ./ varcube, dims=1)[1, :, :] ./ sum(inv.(varcube), dims=1)[1, :, :]
+
+    # calculate collapsed sum and replace NaNs with our fill value
+    out = sum(cube ./ varcube, dims=1) ./ sum(inv.(varcube), dims=1)
+    @. out[isnan(out)] = fill
+    return out[1, :, :]
 end
 
 """

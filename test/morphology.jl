@@ -57,6 +57,10 @@ end
 
     @test collapse(ones(10, 512, 512), angles) == mean(derotate!(ones(10, 512, 512), angles), dims=1)[1, :, :]
 
+    X_copy = deepcopy(X)
+    @test collapse(X, angles) == collapse!(X_copy, angles)
+    @test X_copy != X
+
 end
 
 @testset "shift frame" begin
@@ -80,9 +84,10 @@ end
         col = 2 + dx
         @test shift_frame(cube, dx, dy)[:, row, col] == ones(10)
         shift_frame(cube, (dx, dy)) == shift_frame(cube, dx, dy)
+        shift_frame(cube, fill(dx, 10), fill(dy, 10)) == shift_frame(cube, dx, dy)
+        shift_frame(cube, fill((dx, dy), 10)) == shift_frame(cube, dx, dy)
     end
     @test all(shift_frame(cube, 1, 1, fill=NaN)[:, 3, 1] .=== NaN)
-    @test shift_frame(cube, repeat([(0, 0)], 10)) == cube
 end
 
 # TODO WHY IS THIS ALL BROKEN???????
