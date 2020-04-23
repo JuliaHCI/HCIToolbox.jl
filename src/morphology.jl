@@ -188,7 +188,7 @@ julia> derotate(X, [90])[1, :, :]
 ```
 
 # See Also
-[`derotate!`](@ref), [`rotate`](@ref), [`rotate!`](@ref)
+[`derotate!`](@ref)
 """
 function derotate(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
     all(angles .≈ 0) && return cube
@@ -207,15 +207,15 @@ Shifts `frame` by `dx` and `dy` with bilinear interpolation. If necessary, empty
 ```jldoctest
 julia> shift_frame([0 0 0; 0 1 0; 0 0 0], 1, -1)
 3×3 Array{Float64,2}:
- 0.0  0.0  0.0
- 0.0  0.0  0.0
  0.0  0.0  1.0
+ 0.0  0.0  0.0
+ 0.0  0.0  0.0
 
 julia> shift_frame(ans, (-1, 1), fill=NaN)
- 3×3 Array{Float64,2}:
-    0.0    0.0  NaN
-    0.0    1.0  NaN
-  NaN    NaN    NaN
+3×3 Array{Float64,2}:
+ NaN    NaN    NaN
+   0.0    1.0  NaN
+   0.0    0.0  NaN
 ```
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
@@ -293,19 +293,19 @@ The positions are decided in this way:
 ```jldoctest
 julia> inject_image(zeros(5, 5), ones(1, 1), A=2, x=2, y=1) # image coordinates
 5×5 Array{Float64,2}:
- 0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0  0.0
  0.0  2.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
 
 julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
 5×5 Array{Float64,2}:
- 0.0  1.0  1.0  1.0  0.0
- 0.0  1.0  1.0  1.0  0.0
- 0.0  0.5  0.5  0.5  0.0
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  1.0  0.0
+ 0.0  0.0  1.0  1.0  0.0
 ```
 """
 inject_image(frame::AbstractMatrix, img::AbstractMatrix; A=1, parametrization...) = 
