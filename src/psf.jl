@@ -50,10 +50,10 @@ end
 const rz = 3.8317059702075125 / π
 
 AiryDisk(x0, y0, fwhm, A=1) = AiryDisk(promote(x0, y0, fwhm, A)...)
-function (a::AiryDisk)(x, y)
+function (a::AiryDisk{T})(x, y) where T
     radius = a.fwhm * 1.18677
     r = sqrt((x - a.x0)^2 + (y - a.y0)^2) / (radius / rz)
-    z = iszero(r) ? r : (2besselj1(π * r) / (π * r))^2
+    z = iszero(r) ? one(T) : (2besselj1(π * r) / (π * r))^2
     return a.A * z
 end
 

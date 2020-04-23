@@ -86,7 +86,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
 end
 
 """
-    matrix(cube)
+    tomatrix(cube)
 
 Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where each row is a flattened image from the cube.
 
@@ -94,7 +94,7 @@ Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where e
 ```jldoctest
 julia> X = ones(3, 2, 2);
 
-julia> matrix(X)
+julia> tomatrix(X)
 3×4 Array{Float64,2}:
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
@@ -102,12 +102,12 @@ julia> matrix(X)
 ```
 
 # See Also
-[`cube`](@ref)
+[`tocube`](@ref)
 """
-matrix(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
+tomatrix(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
 
 """
-    cube(matrix)
+    tocube(matrix)
 
 Given a matrix of size `(n, z)`, returns a cube of size `(n, x, x)` where `x=√z`.
 
@@ -121,7 +121,7 @@ julia> X = ones(3, 4)
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
 
-julia> cube(X)
+julia> tocube(X)
 3×2×2 Array{Float64,3}:
 [:, :, 1] =
  1.0  1.0
@@ -135,9 +135,9 @@ julia> cube(X)
 ```
 
 # See Also
-[`matrix`](@ref)
+[`tomatrix`](@ref)
 """
-function cube(mat::AbstractMatrix)
+function tocube(mat::AbstractMatrix)
     n, z = size(mat)
     x = sqrt(z)
     isinteger(x) || error("Array of size $((n, x, x)) is not compatible with input matrix of size $(size(mat)).")
@@ -219,7 +219,7 @@ julia> shift_frame(ans, (-1, 1), fill=NaN)
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
     ctr = center(frame)
-    tform = Translation(dy, -dx)
+    tform = Translation(-dy, -dx)
     return warp(frame, tform, axes(frame), fill)
 end
 shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(frame, dpos...; fill=fill)
@@ -320,7 +320,7 @@ end
     inject_image(cube, img, [angles]; x, y, A=1)
     inject_image(cube, img, [angles]; r, theta, A=1)
 
-Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles`. This is useful for fake companion injection.
+Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles` in degrees. This is useful for fake companion injection.
 """
 inject_image(cube::AbstractArray{T,3}, img; A=1, parametrization...) where T =
     inject_image!(deepcopy(cube), img; A=A, parametrization...)
@@ -344,9 +344,8 @@ end
 function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; A=1, parametrization...) where T
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
-        # period discretization of frame angle
-        θ = floor(deg2rad(angles[idx]) * typemax(Int16)) / typemax(Int16)
-        rot = LinearMap(RotMatrix{2}(-θ))
+        # frame rotation
+        rot = LinearMap(RotMatrix{2}(-deg2rad(angles[idx])))
         # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
         tform = rot ∘ _get_translation((;parametrization...), frame, img)
         # transform image with zero padding and add to frame; use view to avoid allocation
@@ -363,7 +362,7 @@ The NamedTuples should constand fold during compilation, incurring no
 function calls for dispatching. Note the discrepancy in image coordinates 
 to cartesian coordinates in the Translation
 =#
-_get_translation(pars::NamedTuple{(:x, :y)}, frame, img) =  Translation(-pars.y, -pars.x - 1) ∘ Translation(center(img))
+_get_translation(pars::NamedTuple{(:x, :y)}, frame, img) =  Translation(-pars.y, -pars.x) ∘ Translation(center(img))
 _get_translation(pars::NamedTuple{(:y, :x)}, frame, img) = _get_translation((x=pars.x, y=pars.y), frame, img)
 
 function _get_translation(pars::NamedTuple{(:r, :theta)}, frame, img)

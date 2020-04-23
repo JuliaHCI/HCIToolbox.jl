@@ -2,8 +2,8 @@ module HCIToolbox
 
 export derotate,
        derotate!,
-       cube,
-       matrix,
+       tocube,
+       tomatrix,
        collapse,
        collapse!,
        mask_circle!,

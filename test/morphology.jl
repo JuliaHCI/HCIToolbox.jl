@@ -1,20 +1,20 @@
 @testset "matrix/cube" begin
 
-    @testset "matrix" begin
-        @test matrix(ones(3, 4, 4)) == ones(3, 16)
+    @testset "tomatrix" begin
+        @test tomatrix(ones(3, 4, 4)) == ones(3, 16)
 
-        @test_throws MethodError matrix(ones(3, 4))
+        @test_throws MethodError tomatrix(ones(3, 4))
     end
 
-    @testset "cube" begin
-        @test cube(ones(3, 16)) == ones(3, 4, 4)
+    @testset "tocube" begin
+        @test tocube(ones(3, 16)) == ones(3, 4, 4)
 
-        @test_throws ErrorException cube(ones(3, 15))
+        @test_throws ErrorException tocube(ones(3, 15))
     end
 
     # Simple regression
     X = rand(10, 512, 512)
-    @test cube(matrix(X)) == X
+    @test tocube(tomatrix(X)) == X
 end
 
 @testset "derotate" begin
@@ -59,15 +59,30 @@ end
 
 end
 
+@testset "shift frame" begin
+    X = zeros(3, 3)
+    X[2, 2] = 1
+    for dx in -1:1, dy in -1:1
+        row = 2 + dy
+        col = 2 + dx
+        @test shift_frame(X, dx, dy)[row, col] == 1
+    end
+
+    @test shift_frame(X, 1, 1, fill=NaN)[3, 1] === NaN
+    
+end
+
 # TODO WHY IS THIS ALL BROKEN???????
 @testset "image injection" begin
-    # frame = zeros(3, 3)
-    # img = ones(1, 1)
-    # @test inject_image(frame, img, x = 0, y = 0)[2, 2] == 1
-    # @test inject_image(frame, img, x = 1, y = -1)[3, 3] == 1
-    # @test inject_image(frame, img, x = -1, y = 1)[1, 1] == 1
-    # @test inject_image(frame, img, x = 2, y = 2) == zeros(3, 3)
+    frame = zeros(3, 3)
+    img = ones(1, 1)
+    for x in 1:3, y in 1:3
+        @test inject_image(frame, img, x = x, y = y)[y, x] == 1
+        @test inject_image(frame, img, A=2, x = x, y = y)[y, x] == 2
+    end
+    @test inject_image(frame, img, x = 0, y = 0) == zeros(3, 3)
 
+    ## the following is not G2G
     # for (x, y) in zip([-1, 0, 0, 1], [0, 1, -1, 0]), frame in [zeros(3, 3), zeros(4, 4)], img in [ones(1, 1), ones(2, 2)]
     #     # works in both coordinate systems
     #     r = hypot(x, y)
