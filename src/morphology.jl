@@ -157,7 +157,7 @@ In-place version of [`derotate`](@ref) which modifies `cube`.
 function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
     for i in axes(cube, 1)
         frame = @view cube[i, :, :]
-        frame .= imrotate(frame, deg2rad(-angles[i]), axes(frame), Linear(), fill)
+        frame .= imrotate(frame, deg2rad(angles[i]), axes(frame), Linear(), fill)
     end
     return cube
 end

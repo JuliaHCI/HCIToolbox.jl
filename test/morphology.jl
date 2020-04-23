@@ -39,8 +39,8 @@ end
     # trivial
     X = zeros(1, 3, 3)
     X[1, 1, 2] = 1
-    # expect the 1 to rotate 90° ccw
-    @test derotate(X, [90])[1, 2, 1] ≈ 1 rtol=1e-3
+    # expect the 1 to rotate 90° ccw physical, cw image
+    @test derotate(X, [90])[1, 2, 3] ≈ 1 rtol=1e-3
 
 end
 
