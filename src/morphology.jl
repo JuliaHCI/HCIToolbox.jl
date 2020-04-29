@@ -354,9 +354,9 @@ function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::Ab
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
         # frame rotation
-        rot = LinearMap(RotMatrix{2}(-deg2rad(angles[idx])))
+        rot = recenter(LinearMap(RotMatrix{2}(-deg2rad(angles[idx]))), center(frame))
         # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
-        tform = rot ∘ _get_translation((;parametrization...), frame, img)
+        tform = _get_translation((;parametrization...), frame, img) ∘ rot
         # transform image with zero padding and add to frame
         shifted_img = warp(img, tform, axes(frame), Linear(), zero(T))
         @. frame += A * shifted_img
