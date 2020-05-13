@@ -353,10 +353,8 @@ end
 function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; A=1, parametrization...) where T
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
-        # frame rotation
-        rot = recenter(LinearMap(RotMatrix{2}(-deg2rad(angles[idx]))), center(frame))
         # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
-        tform = _get_translation((;parametrization...), frame, img) ∘ rot
+        tform = _get_translation((;parametrization...), frame, img, angles[idx])
         # transform image with zero padding and add to frame
         shifted_img = warp(img, tform, axes(frame), Linear(), zero(T))
         @. frame += A * shifted_img
@@ -371,15 +369,19 @@ The NamedTuples should constand fold during compilation, incurring no
 function calls for dispatching. Note the discrepancy in image coordinates 
 to cartesian coordinates in the Translation
 =#
-_get_translation(pars::NamedTuple{(:x, :y)}, frame, img) =  Translation(-pars.y, -pars.x) ∘ Translation(center(img))
-_get_translation(pars::NamedTuple{(:y, :x)}, frame, img) = _get_translation((x=pars.x, y=pars.y), frame, img)
+function _get_translation(pars::NamedTuple{(:x, :y)}, frame, img, pa=0)
+    r = sqrt(pars.y^2 + pars.x^2)
+    theta = atand(pars.y, pars.x)
+    return _get_translation((r=r, theta=theta), frame, img, pa)
+end
+_get_translation(pars::NamedTuple{(:y, :x)}, frame, img, pa=0) = _get_translation((x=pars.x, y=pars.y), frame, img, pa)
 
-function _get_translation(pars::NamedTuple{(:r, :theta)}, frame, img)
+function _get_translation(pars::NamedTuple{(:r, :theta)}, frame, img, pa=0)
     # convert to position angle in radians
-    angle = -deg2rad(pars.theta + 90)
+    angle = -deg2rad(pars.theta - pa + 90)
     new_center = Polar(promote(pars.r, angle)...)
     # the translation
     trans = new_center |> CartesianFromPolar() |> Translation
     return trans ∘ Translation(center(img) - center(frame))
 end
-_get_translation(pars::NamedTuple{(:theta, :r)}, frame, img) = _get_translation((r=pars[2], theta=pars[1]), frame, img)
+_get_translation(pars::NamedTuple{(:theta, :r)}, frame, img, pa=0) = _get_translation((r=pars[2], theta=pars[1]), frame, img, pa)
