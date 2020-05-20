@@ -18,12 +18,13 @@ export derotate,
        shift_frame!
 
 
+include("psf.jl")
+
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
 
 # Utilities for mask design
 include("masking.jl")
 include("angles.jl")
-include("psf.jl")
 
 end
