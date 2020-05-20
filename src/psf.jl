@@ -1,94 +1,98 @@
 using Distributions
-using ImageTransformations: center
 using Optim
 using SpecialFunctions
 using Statistics
 using Photometry.Aperture
+using Rotations
+using CoordinateTransformations
+using ImageTransformations
+using Interpolations
+using StaticArrays
 
-export Models, fit, synth_psf, fit_psf, normalize_psf, normalize_psf!
-
-
-abstract type PSFModel{T} end
-
-###################
-
-struct Gaussian{T} <: PSFModel{T}
-    x0::T
-    y0::T
-    fwhm::T
-    A::T
-end
-
-Gaussian(x0, y0, fwhm, A=1) = Gaussian(promote(x0, y0, fwhm, A)...)
-(g::Gaussian)(x, y) = g.A * pdf(MvNormal([g.x0, g.y0], g.fwhm / (2sqrt(2log(2)))), [x, y])
+export Kernels, PSFModel, normalize_psf, normalize_psf!
 
 ###################
 
-struct Moffat{T} <: PSFModel{T}
-    x0::T
-    y0::T
-    fwhm::T
-    A::T
+abstract type PSFKernel end
+
+const Kernels = (Gaussian=Gaussian, Normal=Gaussian, Moffat=Moffat, Airy=AiryDisk)
+
+struct PSFModel{K<:Union{PSFKernel, AbstractMatrix}}
+    kernel::K
 end
 
-Moffat(x0, y0, fwhm, A=1) = Moffat(promote(x0, y0, fwhm, A)...)
-function (m::Moffat)(x, y)
-    Γ = m.fwhm / 2
+(model::PSFModel)(size::Tuple{<:Integer, <:Integer}; A=1, pa=0, location...) = 
+    model(Base.OneTo.(size); A=A, pa=pa, location...)
+
+function (model::PSFModel{<:PSFKernel})(idxs; A=1, pa=0, location...)
+    ys, xs = idxs
+    ctr = SVector(center(xs), center(ys))
+    x0, y0 = _get_center(ctr, values(location), pa)
+    return @. A * model.kernel(x0, y0, xs', ys)
+end
+
+function (model::PSFModel{<:AbstractMatrix{T}})(idxs; A=1, pa=0, location...) where T
+    pos = _get_center(reverse(center(base)), values(location), pa)
+    tform = Translation(pos - reverse(center(model.kernel)))
+    return warp(model.kernel, tform, idxs, Linear(), zero(T))
+end
+
+###################
+
+function _get_center(ctr, pars::NamedTuple{(:x, :y)}, pa=0)
+    pos = SVector(pars.x, pars.y)
+    return recenter(RotMatrix{2}(deg2rad(-pa)), ctr)(pos)
+end
+
+_get_center(ctr, pars::NamedTuple{(:y, :x)}, pa=0) = _get_center((x=pars.x, y=pars.y), pa)
+
+function _get_center(ctr, pars::NamedTuple{(:r, :theta)}, pa=0)
+    pos = Polar(float(pars.r), deg2rad(pars.theta - pa))
+    return CartesianFromPolar()(pos) + ctr
+end
+
+_get_center(ctr, pars::NamedTuple{(:theta, :r)}, pa=0) = _get_center((r=pars.r, theta=pars.theta), pa)
+_get_center(ctr, pars::NamedTuple{(:r, :θ)}, pa=0) = _get_center((r=pars.r, theta=pars.θ), pa)
+_get_center(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) = _get_center((r=pars.r, theta=pars.θ), pa)
+
+###################
+
+
+_sqeuclidean(x0, y0, x, y) = (x - x0)^2 + (y - y0)^2
+
+struct Gaussian{T} <: PSFKernel
+    fwhm::T
+end
+
+(g::Gaussian)(x0, y0, x, y) = exp(-4log(2) * _sqeuclidean(x0, y0, x, y) / g.fwhm^2)
+
+###################
+
+struct Moffat{T} <: PSFKernel
+    fwhm::T
+end
+
+function (m::Moffat)(x0, y0, x, y)
+    hwhm = m.fwhm / 2
     α = 1
-    return m.A * (1 + ((x - m.x0)^2 + (y - m.y0)^2)^2 / Γ^2)^(-α)
+    return (1 + _sqeuclidean(x0, y0, x, y) / hwhm^2)^(-α)
 end
 
 ###################
 
-struct AiryDisk{T} <: PSFModel{T}
-    x0::T
-    y0::T
+struct AiryDisk{T} <: PSFKernel
     fwhm::T
-    A::T
 end
 
 const rz = 3.8317059702075125 / π
 
-AiryDisk(x0, y0, fwhm, A=1) = AiryDisk(promote(x0, y0, fwhm, A)...)
-function (a::AiryDisk{T})(x, y) where T
+function (a::AiryDisk)(x0, y0, x, y)
     radius = a.fwhm * 1.18677
-    r = sqrt((x - a.x0)^2 + (y - a.y0)^2) / (radius / rz)
-    z = iszero(r) ? one(T) : (2besselj1(π * r) / (π * r))^2
-    return a.A * z
+    r = sqrt(_sqeuclidean(x0, y0, x, y)) / (radius / rz)
+    return iszero(r) ? one(T) : (2besselj1(π * r) / (π * r))^2
 end
 
 ###################
-
-const Models = (gaussian=Gaussian, moffat=Moffat, airy=AiryDisk)
-
-function synth_psf(m::PSFModel{T}, shape) where T
-    cy, cx = @. shape ./ 2 + 0.5
-    psf = Matrix{T}(undef, shape)
-    for idx in CartesianIndices(psf)
-        y, x = idx.I
-        psf[idx] = m(x - cx, y - cy)
-    end
-    return psf
-end
-
-
-function fit(M::Type{<:PSFModel}, data::AbstractMatrix{T}, method=LBFGS()) where T
-    # χ2 loss function
-    loss(P) = mapreduce((y_pred, y) -> (y_pred - y)^2, +, synth_psf(M(P...), size(data)), data)
-    P0 = Float64[0, 0, 1, maximum(data)]
-    opt = optimize(loss, P0, method; autodiff=:forward)
-    @info opt
-    return M(Optim.minimizer(opt)...)
-end
-
-function fit_psf(M::Type{<:PSFModel}, data::AbstractMatrix{T}, method=LBFGS(); normalize=true) where T
-    model = fit(M, data, method)
-    psf = synth_psf(model, size(data))
-
-    # optional normalization
-    normalize && normalize_psf!(psf, model.fwhm)
-    return psf, model
-end
 
 function normalize_psf!(psf::AbstractMatrix, fwhm, factor=1)
     ap = CircularAperture(center(psf), factor * fwhm / 2)
