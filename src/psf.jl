@@ -1,5 +1,3 @@
-using Distributions
-using Optim
 using SpecialFunctions
 using Statistics
 using Photometry.Aperture
@@ -53,16 +51,19 @@ function _get_center(ctr, pars::NamedTuple{(:x, :y)}, pa=0)
     return recenter(RotMatrix{2}(deg2rad(-pa)), ctr)(pos)
 end
 
-_get_center(ctr, pars::NamedTuple{(:y, :x)}, pa=0) = _get_center((x=pars.x, y=pars.y), pa)
+_get_center(ctr, pars::NamedTuple{(:y, :x)}, pa=0) = _get_center(ctr, (x=pars.x, y=pars.y), pa)
 
 function _get_center(ctr, pars::NamedTuple{(:r, :theta)}, pa=0)
-    pos = Polar(float(pars.r), deg2rad(pars.theta - pa))
+    pos = Polar(promote(pars.r, deg2rad(pars.theta - pa))...)
     return CartesianFromPolar()(pos) + ctr
 end
 
-_get_center(ctr, pars::NamedTuple{(:theta, :r)}, pa=0) = _get_center((r=pars.r, theta=pars.theta), pa)
-_get_center(ctr, pars::NamedTuple{(:r, :θ)}, pa=0) = _get_center((r=pars.r, theta=pars.θ), pa)
-_get_center(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) = _get_center((r=pars.r, theta=pars.θ), pa)
+_get_center(ctr, pars::NamedTuple{(:theta, :r)}, pa=0) =
+    _get_center(ctr, (r=pars.r, theta=pars.theta), pa)
+_get_center(ctr, pars::NamedTuple{(:r, :θ)}, pa=0) =
+    _get_center(ctr, (r=pars.r, theta=pars.θ), pa)
+_get_center(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) =
+    _get_center(ctr, (r=pars.r, theta=pars.θ), pa)
 
 ###################
 
