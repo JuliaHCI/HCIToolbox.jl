@@ -15,29 +15,38 @@ export Kernels, PSFModel, normalize_psf, normalize_psf!
 
 abstract type PSFKernel end
 
-const Kernels = (Gaussian=Gaussian, Normal=Gaussian, Moffat=Moffat, Airy=AiryDisk)
-
 struct PSFModel{K<:Union{PSFKernel, AbstractMatrix}}
     kernel::K
 end
 
-(model::PSFModel)(size::Tuple{<:Integer, <:Integer}; A=1, pa=0, location...) = 
+(model::PSFModel)(size::Vararg{<:Integer, 2}; A=1, pa=0, location...) = 
     model(Base.OneTo.(size); A=A, pa=pa, location...)
 
 function (model::PSFModel{<:PSFKernel})(idxs; A=1, pa=0, location...)
     ys, xs = idxs
-    ctr = SVector(center(xs), center(ys))
+    ctr = _frame_center(idxs)
     x0, y0 = _get_center(ctr, values(location), pa)
     return @. A * model.kernel(x0, y0, xs', ys)
 end
 
 function (model::PSFModel{<:AbstractMatrix{T}})(idxs; A=1, pa=0, location...) where T
-    pos = _get_center(reverse(center(base)), values(location), pa)
-    tform = Translation(pos - reverse(center(model.kernel)))
+    ctr = _frame_center(idxs)
+    # have to do reversing and flip sign because `warp` moves canvas not image
+    pos = _get_center(ctr, values(location), pa) |> reverse
+    tform = Translation(_frame_center(model.kernel) - pos)
     return warp(model.kernel, tform, idxs, Linear(), zero(T))
 end
 
 ###################
+
+function _frame_center(axes)
+    map(axes) do axis
+        l, u = extrema(axis)
+        (u - l) / 2 + 0.5
+    end |> reverse |> SVector
+end
+
+_frame_center(img::AbstractMatrix) = ImageTransformations.center(img) |> reverse
 
 function _get_center(ctr, pars::NamedTuple{(:x, :y)}, pa=0)
     pos = SVector(pars.x, pars.y)
@@ -91,6 +100,8 @@ function (a::AiryDisk)(x0, y0, x, y)
     r = sqrt(_sqeuclidean(x0, y0, x, y)) / (radius / rz)
     return iszero(r) ? one(T) : (2besselj1(π * r) / (π * r))^2
 end
+
+const Kernels = (Gaussian=Gaussian, Normal=Gaussian, Moffat=Moffat, Airy=AiryDisk)
 
 ###################
 
