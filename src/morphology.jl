@@ -64,7 +64,7 @@ function collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=medi
 end
 
 # deweight using Bottom et al. 2017
- _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T = 
+ _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T =
     _collapse_deweighted!(deepcopy(cube), angles; fill=fill)
 function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
     varframe = var(cube, dims=1)
@@ -278,12 +278,12 @@ end
     inject_image(frame, img; x, y, A=1)
     inject_image(frame, img; r, theta, A=1)
 
-Injects `A * img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized. 
+Injects `A * img` into `frame` at the position relative to the center of `frame` given by the keyword arguments. If necessary, `img` will be bilinearly interpolated onto the new indices. When used for injecting a PSF, it is imperative the PSF is already centered and, preferrably, odd-sized.
 
 ### Coordinate System
 
 The positions are decided in this way:
-* `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up. 
+* `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
 * `r, theta` - Parsed as polar coordinates from the center of the image. `theta` is a position angle.
 
 !!! note
@@ -308,7 +308,7 @@ julia> inject_image(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
  0.0  0.0  1.0  1.0  0.0
 ```
 """
-inject_image(frame::AbstractMatrix, img::AbstractMatrix; A=1, parametrization...) = 
+inject_image(frame::AbstractMatrix, img::AbstractMatrix; A=1, parametrization...) =
     inject_image!(deepcopy(frame), img; A=A, parametrization...)
 
 """
@@ -319,7 +319,7 @@ In-place version of [`inject_image`](@ref) which modifies `frame`.
 """
 function inject_image!(frame::AbstractMatrix{T}, img::AbstractMatrix; A=1, parametrization...) where T
     # get the correct translation depending on (x,y) vs (r, θ)
-    tform = _get_translation((;parametrization...), frame, img)
+    tform = _get_translation(values(parametrization), frame, img)
     # shift image with zero padding and add to frame
     shifted_img = warp(img, tform, axes(frame), Linear(), zero(T))
     return @. frame += A * shifted_img
@@ -351,6 +351,7 @@ function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix; A=1, param
 end
 
 function inject_image!(cube::AbstractArray{T,3}, img::AbstractMatrix, angles::AbstractVector; A=1, parametrization...) where T
+    size(cube, 1) == length(angles) || error("Number of ADI frames does not much between cube and angles- got $(size(cube, 1)) and $(length(angles))")
     for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
         # get the correct translation depending on (x,y) vs (r, θ) WITH the extra rotation
@@ -365,23 +366,30 @@ end
 #=
 These functions allow dispatching on keyword arguments to inject_image!
 
-The NamedTuples should constand fold during compilation, incurring no 
-function calls for dispatching. Note the discrepancy in image coordinates 
+The NamedTuples should constand fold during compilation, incurring no
+function calls for dispatching. Note the discrepancy in image coordinates
 to cartesian coordinates in the Translation
 =#
 function _get_translation(pars::NamedTuple{(:x, :y)}, frame, img, pa=0)
-    r = sqrt(pars.y^2 + pars.x^2)
-    theta = atand(pars.y, pars.x)
+    dist =  (pars.y, pars.x) .- center(frame)
+    r = sqrt(sum(d -> d^2, dist))
+    theta = atand(dist...)
     return _get_translation((r=r, theta=theta), frame, img, pa)
 end
-_get_translation(pars::NamedTuple{(:y, :x)}, frame, img, pa=0) = _get_translation((x=pars.x, y=pars.y), frame, img, pa)
+_get_translation(pars::NamedTuple{(:y, :x)}, frame, img, pa=0) =
+    _get_translation((x=pars.x, y=pars.y), frame, img, pa)
 
 function _get_translation(pars::NamedTuple{(:r, :theta)}, frame, img, pa=0)
     # convert to position angle in radians
-    angle = -deg2rad(pars.theta - pa + 90)
+    angle = deg2rad(pa - pars.theta - 90)
     new_center = Polar(promote(pars.r, angle)...)
     # the translation
     trans = new_center |> CartesianFromPolar() |> Translation
     return trans ∘ Translation(center(img) - center(frame))
 end
-_get_translation(pars::NamedTuple{(:theta, :r)}, frame, img, pa=0) = _get_translation((r=pars[2], theta=pars[1]), frame, img, pa)
+_get_translation(pars::NamedTuple{(:theta, :r)}, frame, img, pa=0) =
+    _get_translation((r=pars.r, theta=pars.theta), frame, img, pa)
+_get_translation(pars::NamedTuple{(:θ, :r)}, frame, img, pa=0) =
+    _get_translation((r=pars.r, theta=pars.θ), frame, img, pa)
+_get_translation(pars::NamedTuple{(:r, :θ)}, frame, img, pa=0) =
+    _get_translation((r=pars.r, theta=pars.θ), frame, img, pa)

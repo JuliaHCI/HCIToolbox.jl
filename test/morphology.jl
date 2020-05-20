@@ -91,6 +91,7 @@ end
 end
 
 # TODO WHY IS THIS ALL BROKEN???????
+# answer: arrays are y-flip of image
 # @testset "image injection" begin
 #     frame = zeros(3, 3)
 #     img = ones(1, 1)
