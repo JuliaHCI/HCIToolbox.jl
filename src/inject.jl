@@ -109,9 +109,6 @@ In-place version of [`inject`](@ref) which modifies `frame`.
 function inject!(frame::AbstractMatrix, kernel; A=1, pa=0, location...)
     return frame .+= construct(kernel, axes(frame); A=A, pa=pa, location...)
 end
-inject!(frame::AbstractMatrix, kernel; A=1, pa=0, location...) = 
-    inject!(frame, kernel; A=A, pa=pa, location...)
-
 
 """
     inject(cube, img, [angles]; x, y, A=1)
@@ -147,10 +144,6 @@ function inject!(cube::AbstractArray{T,3}, kernel, angles::AbstractVector; A=1, 
     end
     return cube
 end
-
-inject!(cube::AbstractArray{T,3}, kernel, angles::AbstractVector; A=1, location...) where T =
-    inject!(cube, kernel, angles; A=A, location...)
-
 
 ###################
 
