@@ -12,16 +12,14 @@ export derotate,
        mask_annulus,
        normalize_par_angles, 
        normalize_par_angles!,
-       inject_image,
-       inject_image!,
+       inject,
+       inject!,
        shift_frame,
        shift_frame!
 
-
-include("psf.jl")
-
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
+include("inject.jl")
 
 # Utilities for mask design
 include("masking.jl")

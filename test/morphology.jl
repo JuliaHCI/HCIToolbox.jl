@@ -96,13 +96,13 @@ end
 #     frame = zeros(3, 3)
 #     img = ones(1, 1)
 #     for x in 1:3, y in 1:3
-#         @test inject_image(frame, img, x = x, y = y)[y, x] == 1
-#         @test inject_image(frame, img, A=2, x = x, y = y)[y, x] == 2
+#         @test inject(frame, img, x = x, y = y)[y, x] == 1
+#         @test inject(frame, img, A=2, x = x, y = y)[y, x] == 2
 #     end
-#     @test inject_image(frame, img, x = 0, y = 0) == zeros(3, 3)
+#     @test inject(frame, img, x = 0, y = 0) == zeros(3, 3)
 
 #     cube = zeros(10, 3, 3)
 #     img = ones(1, 1)
-#     @test inject_image(cube, img, x=2, y=2)[:, 2, 2] == ones(10)
-#     @test inject_image(cube, img, zeros(10), x=2, y=2)[:, 2, 2] == ones(10)
+#     @test inject(cube, img, x=2, y=2)[:, 2, 2] == ones(10)
+#     @test inject(cube, img, zeros(10), x=2, y=2)[:, 2, 2] == ones(10)
 # end
