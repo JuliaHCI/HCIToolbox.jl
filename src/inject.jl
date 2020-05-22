@@ -1,4 +1,3 @@
-using SpecialFunctions
 using Statistics
 using Photometry.Aperture
 using Rotations
@@ -20,6 +19,8 @@ Available kernels
 - [`Kernels.Airy`](@ref)
 """
 module Kernels
+
+using SpecialFunctions
 
 """
     Kernels.PSFKernel <: Function
@@ -146,10 +147,10 @@ end
 
 const rz = 3.8317059702075125 / π
 
-function (a::AiryDisk)(sqdist::T) where T
+function (a::AiryDisk)(sqdist)
     radius = a.fwhm * 1.18677
     r = sqrt(sqdist) / (radius / rz)
-    return iszero(r) ? one(T) : (2besselj1(π * r) / (π * r))^2
+    return iszero(r) ? 1.0 : (2besselj1(π * r) / (π * r))^2
 end
 
 end # module Kernels
