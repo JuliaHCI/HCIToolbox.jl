@@ -9,14 +9,12 @@ using StaticArrays
 export Kernels, construct, normalize_psf, normalize_psf!
 
 """
-    Kernels
-
-This module is a simple wrapper around some synthetic PSF kernels.
+This module is a contains some synthetic PSF kernels.
 
 Available kernels
 - [`Kernels.Gaussian`](@ref)/[`Kernels.Normal`](@ref)
 - [`Kernels.Moffat`](@ref)
-- [`Kernels.Airy`](@ref)
+- [`Kernels.AiryDisk`](@ref)
 """
 module Kernels
 
@@ -42,9 +40,11 @@ abstract type PSFKernel <: Function end
 
 A Gaussian kernel
 
-``K(d) = \\exp\\left[-4\\ln{2}\\left(\\frac{d}{\\Gamma}\\right)^2\\right]``
-
+```math
+K(d) = \\exp\\left[-4\\ln{2}\\left(\\frac{d}{\\Gamma}\\right)^2\\right]
 ```
+
+```julia
   ┌────────────────────────────────────────┐ 
 1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠊⡏⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
   │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠇⠀⡇⠘⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
@@ -81,9 +81,11 @@ const Normal = Gaussian
 
 A Moffat kernel
 
-``K(d) = \\left[1 + \\left(\\frac{d}{\\Gamma/2}\\right)^2 \\right]^{-1}``
-
+```math
+K(d) = \\left[1 + \\left(\\frac{d}{\\Gamma/2}\\right)^2 \\right]^{-1}
 ```
+
+```julia
   ┌────────────────────────────────────────┐ 
 1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠎⡧⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
   │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡜⠀⡇⢱⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
@@ -118,9 +120,11 @@ end
 
 An Airy disk. Guaranteed to work even at `r=0`.
 
-``K(r) = \\left[2\\frac{J_1\\left(\\pi r \\right)}{\\pi r}\\right]^2`` where ``r \\approx \\frac{d}{0.97\\Gamma}``
-
+```math
+K(r) = \\left[\\frac{2J_1\\left(\\pi r \\right)}{\\pi r}\\right]^2 \\quad r \\approx \\frac{d}{0.97\\Gamma}
 ```
+
+```julia
   ┌────────────────────────────────────────┐ 
 1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡰⠊⡏⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
   │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠃⠀⡇⠘⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ 
@@ -240,7 +244,7 @@ _get_location(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) =
     inject(frame, ::PSFKernel; A=1, location...)
     inject(frame, ::AbstractMatrix; A=1, location...)
 
-Injects the given PSF kernel or image into `frame` with amplitude `A`. The location can be given in image or polar coordinates, following the [`Coordinate System`](@ref) convention.
+Injects the given PSF kernel or image into `frame` with amplitude `A`. The location can be given in image or polar coordinates, following the coordinate convention below.
 
 ### Coordinate System
 * `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
@@ -264,8 +268,8 @@ julia> inject(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  1.0  1.0  0.0
- 0.0  0.0  1.0  1.0  0.0
+ 0.0  1.0  1.0  1.0  0.0
+ 0.0  1.0  1.0  1.0  0.0
 ```
 """
 inject(frame::AbstractMatrix, kernel; A=1, location...) =

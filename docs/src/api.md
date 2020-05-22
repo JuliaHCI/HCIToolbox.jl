@@ -10,5 +10,5 @@ For now, here is a dump of all documented functions and types.
 ## API/Reference
 
 ```@autodocs
-Modules = [HCIToolbox]
+Modules = [HCIToolbox, HCIToolbox.Kernels]
 ```
