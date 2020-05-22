@@ -52,7 +52,7 @@ end
     @test collapse(X; method = mean) == mean(X, dims = 1)[1, :, :]
 
     @test !(collapse(X, angles) ≈ collapse(derotate(X, angles)))
-    @test collapse(X, angles, deweight=false) ≈ collapse(derotate(X, angles))
+    @test collapse(X, angles, method=median) ≈ collapse(derotate(X, angles))
     @test any(collapse(X, angles, fill=NaN) .=== NaN)
 
     @test collapse(ones(10, 512, 512), angles) == mean(derotate!(ones(10, 512, 512), angles), dims=1)[1, :, :]

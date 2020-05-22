@@ -8,11 +8,11 @@ using Interpolations
 
 """
     collapse(cube; method=median, fill=0)
-    collapse(cube, angles; method=median, deweight=true, fill=0)
+    collapse(cube, angles; method=:deweight, fill=0)
 
 Combine all the frames of a cube using `method`. If `angles` are provided, will use [`derotate`](@ref) before combining.
 
-If `deweight` is true, the method of _Bottom et al. 2017_ will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. `fill` will be passed to [`derotate`](@ref).
+If `method` is `:deweight`, the method of _Bottom et al. 2017_ will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. `fill` will be passed to [`derotate`](@ref).
 
 ### References
 1. [Bottom et al. 2017 "Noise-weighted Angular Differential Imaging"](https://ui.adsabs.harvard.edu/abs/2017RNAAS...1...30B)
@@ -44,29 +44,26 @@ julia> collapse(X, [0, 90], fill=NaN)
 # See Also
 [`collapse!`](@ref)
 """
-function collapse(cube::AbstractArray{T,3}; method=median) where T
-    return method(cube, dims = 1)[1, :, :]
-end
+collapse(cube::AbstractArray{T,3}; method=median) where {T} = method(cube, dims = 1)[1, :, :]
 
-function collapse(cube::AbstractArray{T,3}, angles::AbstractVector; method=median, deweight=true, fill=0) where T
-    return deweight ? _collapse_deweighted(cube, angles, fill=fill) :
-                      collapse(derotate(cube, angles, fill=fill); method = method)
-end
+collapse(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, fill=zero(T)) where T =
+    method === :deweight ? _collapse_deweighted(cube, angles, fill=fill) :
+               collapse(derotate(cube, angles, fill=fill); method = method)
 
 """
-    collapse!(cube, angles; method=median, deweight=true)
+    collapse!(cube, angles; method=:deweight, fill=0)
 
 An in-place version of the derotating [`collapse`](@ref). The only difference is in this version the cube will be derotated in-place.
 """
-function collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=median, deweight=true, fill=0) where T
-    return deweight ? _collapse_deweighted!(cube, angles, fill=fill) :
-                      collapse(derotate!(cube, angles, fill=fill); method = method)
-end
+collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, fill=zero(T)) where T =
+    method === :deweight ? _collapse_deweighted!(cube, angles, fill=fill) :
+               collapse(derotate!(cube, angles, fill=fill); method = method)
 
 # deweight using Bottom et al. 2017
- _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T =
+ _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T)) where T =
     _collapse_deweighted!(deepcopy(cube), angles; fill=fill)
-function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
+
+function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T)) where T
     varframe = var(cube, dims=1)
 
     # have to check if no variance otherwise the returns will be NaN
@@ -74,7 +71,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     for idx in axes(varcube, 1)
-        varcube[idx, :, :] .= varframe[1, :, :]
+        @inbounds varcube[idx, :, :] .= varframe[1, :, :]
     end
     # derotate both cubes and perform a weighted sum
     derotate!(cube, angles; fill=fill)
