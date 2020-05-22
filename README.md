@@ -14,14 +14,18 @@ Common utilities for high-contrast imaging.
 From the Julia REPL
 
 ```julia
-julia> ]
-
-(1.3) pkg> add HCIToolbox
+julia> ] add HCIToolbox
 ```
 
 ## Usage
 
 Please see the [documentation](https://juliahci.github.io/HCIToolbox.jl/dev/) for usage, tutorials, and API reference.
+
+The following general routines are included:
+* Derotation and collapsing
+* Shifting frames/cubes
+* Injecting images/synthetic PSFs into frames/cubes
+* Masking frames/cubes
 
 ## License
 
