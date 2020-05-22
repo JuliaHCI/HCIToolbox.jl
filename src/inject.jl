@@ -23,7 +23,7 @@ function construct(kernel::PSFKernel, idxs::Tuple{<:AbstractVector, <:AbstractVe
     return @. A * kernel(_sqeuclidean(x0, y0, xs', ys))
 end
 
-function construct(kernel::AbstractMatrix, idxs::Tuple{<:AbstractVector, <:AbstractVector}; A=1, pa=0, location...) where T
+function construct(kernel::AbstractMatrix{T}, idxs::Tuple{<:AbstractVector, <:AbstractVector}; A=1, pa=0, location...) where T
     ctr = _frame_center(idxs)
     # have to do reversing and flip sign because `warp` moves canvas not image
     pos = _get_location(ctr, values(location), pa) |> reverse
