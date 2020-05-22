@@ -46,4 +46,6 @@ end
     cube = zeros(10, 3, 3)
     @test inject(cube, kernel; x=2, y=2)[:, 2, 2] ≈ ones(10)
     @test inject(cube, kernel, zeros(10); x=2, y=2)[:, 2, 2] ≈ ones(10)
+
+    @test_throws ErrorException inject(cube, kernel, zeros(3); x=2, y=2)
 end
