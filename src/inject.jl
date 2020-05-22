@@ -184,7 +184,7 @@ end
     construct(::AbstractMatrix, size; A=1, pa=0, location...)
     construct(::AbstractMatrix, indices; A=1, pa=0, location...)
 
-Constructs a PSF using the given matrix via bilinear interpolation.
+Constructs a PSF at the given location using the given matrix via bilinear interpolation.
 
 If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise.
 
@@ -198,10 +198,10 @@ function construct(kernel::AbstractMatrix, idxs::Tuple{<:AbstractVector, <:Abstr
     # have to do reversing and flip sign because `warp` moves canvas not image
     pos = _get_location(ctr, values(location), pa) |> reverse
     tform = Translation(_frame_center(kernel) - pos)
-    return @. S(A * warp(kernel, tform, idxs, Linear(), zero(S)))
+    return  S.(A .* warp(kernel, tform, idxs, Linear(), zero(S)))
 end
 
-construct(kernel::PSFKernel, size::Tuple{<:Integer, <:Integer}; A=1, pa=0, location...) =
+construct(kernel, size::Tuple{<:Integer, <:Integer}; A=1, pa=0, location...) =
     construct(kernel, Base.OneTo.(size); A=A, pa=pa, location...)
 
 function _frame_center(axes)

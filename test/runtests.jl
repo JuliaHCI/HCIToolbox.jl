@@ -8,5 +8,5 @@ Random.seed!(8799)
     include("morphology.jl")
     include("masking.jl")
     include("angles.jl")
-    include("kernels.jl")
+    include("inject.jl")
 end

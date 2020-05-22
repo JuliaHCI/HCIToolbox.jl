@@ -89,20 +89,3 @@ end
     end
     @test all(shift_frame(cube, 1, 1, fill=NaN)[:, 3, 1] .=== NaN)
 end
-
-# TODO WHY IS THIS ALL BROKEN???????
-# answer: arrays are y-flip of image
-# @testset "image injection" begin
-#     frame = zeros(3, 3)
-#     img = ones(1, 1)
-#     for x in 1:3, y in 1:3
-#         @test inject(frame, img, x = x, y = y)[y, x] == 1
-#         @test inject(frame, img, A=2, x = x, y = y)[y, x] == 2
-#     end
-#     @test inject(frame, img, x = 0, y = 0) == zeros(3, 3)
-
-#     cube = zeros(10, 3, 3)
-#     img = ones(1, 1)
-#     @test inject(cube, img, x=2, y=2)[:, 2, 2] == ones(10)
-#     @test inject(cube, img, zeros(10), x=2, y=2)[:, 2, 2] == ones(10)
-# end
