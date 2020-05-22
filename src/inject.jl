@@ -176,8 +176,8 @@ function construct(kernel::PSFKernel, idxs::Tuple{<:AbstractVector, <:AbstractVe
     ys, xs = idxs
     ctr = _frame_center(idxs)
     x0, y0 = _get_location(ctr, values(location), pa)
-    r2 = @. (x - x0)^2 + (y - y0)^2
-    return @. S(A * kernel(_r2))
+    r2 = @. (xs' - x0)^2 + (ys - y0)^2
+    return @. S(A * kernel(r2))
 end
 
 """
@@ -207,7 +207,7 @@ construct(kernel::PSFKernel, size::Tuple{<:Integer, <:Integer}; A=1, pa=0, locat
 function _frame_center(axes)
     map(axes) do axis
         l, u = extrema(axis)
-        (u - l) / 2 + 0.5
+        (u - l) / 2 + 1
     end |> reverse |> SVector
 end
 
