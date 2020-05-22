@@ -169,14 +169,15 @@ using .Kernels: PSFKernel
 
 Constructs a synthetic PSF using the given kernel.
 
-If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise.
+If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise. If no `location` is given, will assume the center of the frame.
 
 ### Coordinate System
 * `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
 * `r, theta` or `r, θ` - Parsed as polar coordinates from the center of the image. `theta` is a position angle.
 """
 function construct(kernel::PSFKernel, idxs::Tuple{<:AbstractVector, <:AbstractVector}; A=1, pa=0, location...)
-    S = mapreduce(typeof, promote_type, values(location)) |> float
+    T = length(location) > 0 ? mapreduce(typeof, promote_type, values(location)) : eltype(A)
+    S = float(T)
     ys, xs = idxs
     ctr = _frame_center(idxs)
     x0, y0 = _get_location(ctr, values(location), pa)
@@ -190,14 +191,15 @@ end
 
 Constructs a PSF at the given location using the given matrix via bilinear interpolation.
 
-If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise.
+If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise. If no `location` is given, will assume the center of the frame.
 
 ### Coordinate System
 * `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
 * `r, theta` or `r, θ` - Parsed as polar coordinates from the center of the image. `theta` is a position angle.
 """
 function construct(kernel::AbstractMatrix, idxs::Tuple{<:AbstractVector, <:AbstractVector}; A=1, pa=0, location...)
-    S = mapreduce(typeof, promote_type, values(location)) |> float
+    T = length(location) > 0 ? mapreduce(typeof, promote_type, values(location)) : eltype(A)
+    S = float(T)
     ctr = _frame_center(idxs)
     # have to do reversing and flip sign because `warp` moves canvas not image
     pos = _get_location(ctr, values(location), pa) |> reverse
@@ -217,7 +219,7 @@ end
 
 _frame_center(img::AbstractMatrix) = ImageTransformations.center(img) |> reverse
 
-
+# cartesian
 function _get_location(ctr, pars::NamedTuple{(:x, :y)}, pa=0)
     pos = SVector(pars.x, pars.y)
     return recenter(RotMatrix{2}(deg2rad(-pa)), ctr)(pos)
@@ -225,6 +227,7 @@ end
 
 _get_location(ctr, pars::NamedTuple{(:y, :x)}, pa=0) = _get_location(ctr, (x=pars.x, y=pars.y), pa)
 
+# polar
 function _get_location(ctr, pars::NamedTuple{(:r, :theta)}, pa=0)
     pos = Polar(promote(pars.r, deg2rad(pars.theta - pa))...)
     return CartesianFromPolar()(pos) + ctr
@@ -237,6 +240,9 @@ _get_location(ctr, pars::NamedTuple{(:r, :θ)}, pa=0) =
 _get_location(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) =
     _get_location(ctr, (r=pars.r, theta=pars.θ), pa)
 
+# default is just the center
+_get_location(ctr, pars::NamedTuple{()}, pa=0) = ctr
+
 
 ################################
 
@@ -244,7 +250,7 @@ _get_location(ctr, pars::NamedTuple{(:θ, :r)}, pa=0) =
     inject(frame, ::PSFKernel; A=1, location...)
     inject(frame, ::AbstractMatrix; A=1, location...)
 
-Injects the given PSF kernel or image into `frame` with amplitude `A`. The location can be given in image or polar coordinates, following the coordinate convention below.
+Injects the given PSF kernel or image into `frame` with amplitude `A`. The location can be given in image or polar coordinates, following the coordinate convention below. If no `location` is given, will assume the center of the frame.
 
 ### Coordinate System
 * `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
@@ -289,7 +295,7 @@ end
     inject(cube, ::PSFKernel, [angles]; A=1, location...)
     inject(cube, ::AbstractMatrix, [angles]; A=1, location...)
 
-Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles` in degrees. This is useful for fake companion injection.
+Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles` in degrees. This is useful for fake companion injection. If no `location` is given, will assume the center of each frame.
 """
 inject(cube::AbstractArray{T,3}, kernel; A=1, location...) where T =
     inject!(deepcopy(cube), kernel; A=A, location...)

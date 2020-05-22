@@ -22,6 +22,11 @@ end
     @test arr == construct(kernel, (1:101, 1:101); r=0, θ=0)
 
     # location parsing
+    A = construct(kernel, (101, 101); A=2)
+    B = construct(kernel, (101, 101); A=2)
+    @test A ≈ B 
+    @test A[51, 51] ≈ B[51, 51] ≈ 2
+
     A = construct(kernel, (101, 101); A=2, r=3, θ=0)
     B = construct(kernel, (101, 101); A=2, x=54, y=51)
     @test A ≈ B 
