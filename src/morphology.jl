@@ -67,7 +67,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     varframe = var(cube, dims=1)
 
     # have to check if no variance otherwise the returns will be NaN
-    all(varframe .≈ 0) && return mean(derotate!(cube, angles; kwargs...); dims=1)[1, :, :]
+    all(varframe .≈ 0) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=1)[1, :, :]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     for idx in axes(varcube, 1)
