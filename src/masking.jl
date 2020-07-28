@@ -79,7 +79,7 @@ function get_annulus_segments(data, inner_radius, width, nsegments; theta_init=0
     ϕ_rot = mod2pi.(ϕ)
     outer_radius = inner_radius + scale_factor * width
 
-    masks = similar(data, BitArray{2}, nsegments)
+    masks = similar(data, Matrix{Bool}, nsegments)
     for i in 1:nsegments
         ϕ_start = deg2rad(theta_init) + i * ϕ_stride
         ϕ_end = ϕ_start + ϕ_stride
@@ -94,7 +94,7 @@ function get_annulus_segments(data, inner_radius, width, nsegments; theta_init=0
         @inbounds masks[i] = mask
     end
 
-    return _convert_mask.(Val(mode), masks, Ref(data))
+    return _convert_mask.(Val(mode), masks, (data,))
 end
 
 

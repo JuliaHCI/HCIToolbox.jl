@@ -7,12 +7,12 @@ using Interpolations
 # Stacking routines
 
 """
-    collapse(cube; method=median, fill=0)
-    collapse(cube, angles; method=:deweight, fill=0)
+    collapse(cube; method=median, fill=0, degree=Linear())
+    collapse(cube, angles; method=:deweight, fill=0, degree=Linear())
 
 Combine all the frames of a cube using `method`. If `angles` are provided, will use [`derotate`](@ref) before combining.
 
-If `method` is `:deweight`, the method of _Bottom et al. 2017_ will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. `fill` will be passed to [`derotate`](@ref).
+If `method` is `:deweight`, the method of _Bottom et al. 2017_ will be used in which the combined image will be the derotated weighted sum of the frames weighted by the temporal variance. Keyword arguments will be passed to [`derotate`](@ref).
 
 ### References
 1. [Bottom et al. 2017 "Noise-weighted Angular Differential Imaging"](https://ui.adsabs.harvard.edu/abs/2017RNAAS...1...30B)
@@ -46,36 +46,36 @@ julia> collapse(X, [0, 90], fill=NaN)
 """
 collapse(cube::AbstractArray{T,3}; method=median) where {T} = method(cube, dims = 1)[1, :, :]
 
-collapse(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, fill=zero(T)) where T =
-    method === :deweight ? _collapse_deweighted(cube, angles, fill=fill) :
-               collapse(derotate(cube, angles, fill=fill); method = method)
+collapse(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, kwargs...) where T =
+    method === :deweight ? _collapse_deweighted(cube, angles; kwargs...) :
+               collapse(derotate(cube, angles; kwargs...); method = method)
 
 """
     collapse!(cube, angles; method=:deweight, fill=0)
 
 An in-place version of the derotating [`collapse`](@ref). The only difference is in this version the cube will be derotated in-place.
 """
-collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, fill=zero(T)) where T =
-    method === :deweight ? _collapse_deweighted!(cube, angles, fill=fill) :
-               collapse(derotate!(cube, angles, fill=fill); method = method)
+collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, kwargs...) where T =
+    method === :deweight ? _collapse_deweighted!(cube, angles; kwargs...) :
+               collapse(derotate!(cube, angles; kwargs...); method = method)
 
 # deweight using Bottom et al. 2017
- _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T)) where T =
-    _collapse_deweighted!(deepcopy(cube), angles; fill=fill)
+ _collapse_deweighted(cube::AbstractArray{T,3}, angles::AbstractVector; kwargs...) where T =
+    _collapse_deweighted!(deepcopy(cube), angles; kwargs...)
 
-function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T)) where T
+function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T), kwargs...) where T
     varframe = var(cube, dims=1)
 
     # have to check if no variance otherwise the returns will be NaN
-    all(varframe .≈ 0) && return mean(derotate!(cube, angles; fill=fill); dims=1)[1, :, :]
+    all(varframe .≈ 0) && return mean(derotate!(cube, angles; kwargs...); dims=1)[1, :, :]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     for idx in axes(varcube, 1)
         @inbounds varcube[idx, :, :] .= varframe[1, :, :]
     end
     # derotate both cubes and perform a weighted sum
-    derotate!(cube, angles; fill=fill)
-    derotate!(varcube, angles; fill=fill)
+    derotate!(cube, angles; fill=fill, kwargs...)
+    derotate!(varcube, angles; fill=fill, kwargs...)
 
     # calculate collapsed sum and replace NaNs with our fill value
     out = sum(cube ./ varcube, dims=1) ./ sum(inv.(varcube), dims=1)
@@ -140,25 +140,28 @@ end
 # Rotation routines
 
 """
-    derotate!(cube, angles; fill=0)
+    derotate!(cube, angles; fill=0, degree=Linear())
 
 In-place version of [`derotate`](@ref) which modifies `cube`.
 """
-function derotate!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
+function derotate!(cube::AbstractArray{T,3},
+                   angles::AbstractVector;
+                   fill=zero(T),
+                   degree=Linear()) where T
     for i in axes(cube, 1)
         frame = @view cube[i, :, :]
-        frame .= imrotate(frame, deg2rad(angles[i]), axes(frame), Linear(), fill)
+        frame .= imrotate(frame, deg2rad(angles[i]), axes(frame), degree, fill)
     end
     return cube
 end
 
 
 """
-    derotate(cube, angles; fill=0)
+    derotate(cube, angles; fill=0, degree=Linear())
 
 Rotates an array using the given angles in degrees.
 
-This will rotate frame `i` counter-clockwise. Any values outside the original axes will be replaced with `fill`. If the given angles are true parallactic angles, the resultant cube will have each frame aligned with top pointing North.
+This will rotate frame `i` counter-clockwise. Any values outside the original axes will be replaced with `fill`. If the given angles are true parallactic angles, the resultant cube will have each frame aligned with top pointing North. `degree` is the corresponding `Interpolations.Degree` for the B-Spline used to subsample the pixel values.
 
 # Examples
 ```jldoctest
@@ -180,9 +183,9 @@ julia> derotate(X, [90])[1, :, :]
 # See Also
 [`derotate!`](@ref)
 """
-function derotate(cube::AbstractArray{T,3}, angles::AbstractVector; fill=0) where T
-    all(angles .≈ 0) && return cube
-    return derotate!(deepcopy(cube), angles, fill=fill)
+function derotate(cube::AbstractArray{T,3}, angles::AbstractVector; kwargs...) where T
+    all(iszero, angles) && return cube
+    return derotate!(deepcopy(cube), angles; kwargs...)
 end
 
 #################################
