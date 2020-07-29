@@ -7,6 +7,7 @@
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/dev)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3965038.svg)](https://doi.org/10.5281/zenodo.3965038)
 
 Common utilities for high-contrast imaging.
 
