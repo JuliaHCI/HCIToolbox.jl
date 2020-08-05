@@ -77,11 +77,11 @@ function get_annulus_segments(data, inner_radius, width, nsegments; theta_init=0
     ϕ_stride = deg2rad(ceil(Int, 360 / nsegments))
     ϕ = @. atan(ys - cy, xs - cx)
     ϕ_rot = mod2pi.(ϕ)
-    outer_radius = inner_radius + scale_factor * width
+    outer_radius = @. inner_radius + scale_factor * width
 
     masks = similar(data, Matrix{Bool}, nsegments)
     for i in 1:nsegments
-        ϕ_start = deg2rad(theta_init) + i * ϕ_stride
+        ϕ_start = deg2rad(theta_init) + (i - 1) * ϕ_stride
         ϕ_end = ϕ_start + ϕ_stride
 
         if ϕ_start < 2π && ϕ_end > 2π
@@ -98,7 +98,7 @@ function get_annulus_segments(data, inner_radius, width, nsegments; theta_init=0
 end
 
 
-@compat get_annulus_segments(data, inner_radius, width; theta_init=0, scale_factor=1, mode=:index) = get_annulus_segments(data, inner_radius, width, 1; theta_init=theta_init, scale_factor=scale_factor, mode=mode) |> only
+@compat get_annulus_segments(data, inner_radius, width; theta_init=0, scale_factor=1, mode=:mask) = get_annulus_segments(data, inner_radius, width, 1; theta_init=theta_init, scale_factor=scale_factor, mode=mode) |> only
 
 
 _convert_mask(::Val{:mask}, mask, data) = mask

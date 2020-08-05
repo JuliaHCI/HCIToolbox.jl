@@ -155,6 +155,18 @@ function derotate!(cube::AbstractArray{T,3},
     return cube
 end
 
+"""
+    derotate(frame, angle; fill=0, degree=Linear())
+
+Rotates `frame` counter-clockwise by `angle`, given in degrees. This is merely a convenient wrapper around `ImageTransformations.imrotate`.
+"""
+function derotate(frame::AbstractMatrix{T},
+                   angle;
+                   fill=zero(T),
+                   degree=Linear()) where T
+    return imrotate(frame, deg2rad(angle), axes(frame), degree, fill)
+end
+
 
 """
     derotate(cube, angles; fill=0, degree=Linear())
