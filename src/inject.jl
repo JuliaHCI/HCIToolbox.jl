@@ -34,7 +34,7 @@ loss(y_pred) = value(L2DistLoss(), img, y_pred, AggMode.Sum()) # least-squares l
 # use logarithmic transform to make sure fhwm and A are positive
 function objective(X)
     log_fwhm, log_A, x, y = X
-    img_pred = construct(Kernels.AiryDisk(exp(log_fwhm)), size(img); 
+    img_pred = construct(Kernels.AiryDisk(exp(log_fwhm)), size(img);
                          A=exp(log_A), x=x, y=y)
     return loss(img_pred)
 end
@@ -78,22 +78,22 @@ K(d) = \\exp\\left[-4\\ln{2}\\left(\\frac{d}{\\Gamma}\\right)^2\\right]
 ```
 
 ```
-  ┌────────────────────────────────────────┐            
+  ┌────────────────────────────────────────┐
 1 │                  .'::                  │ Gaussian(x)
-  │                 .: :'.                 │            
-  │                 :  : :                 │            
-  │                :'  : ':                │            
-  │                :   :  :                │            
-  │               .'   :  ':               │            
-  │               :    :   :               │            
-  │              .:    :   '.              │            
-  │              :     :    :              │            
-  │             .'     :    ':             │            
-  │             :      :     :             │            
-  │            .'      :     ':            │            
-  │           .'       :      ':           │            
-  │          .'        :       ':          │            
-0 │.........''         :         ':........│            
+  │                 .: :'.                 │
+  │                 :  : :                 │
+  │                :'  : ':                │
+  │                :   :  :                │
+  │               .'   :  ':               │
+  │               :    :   :               │
+  │              .:    :   '.              │
+  │              :     :    :              │
+  │             .'     :    ':             │
+  │             :      :     :             │
+  │            .'      :     ':            │
+  │           .'       :      ':           │
+  │          .'        :       ':          │
+0 │.........''         :         ':........│
   └────────────────────────────────────────┘
   -2fwhm                               2fwhm
 ```
@@ -102,7 +102,7 @@ struct Gaussian{T} <: PSFKernel
     fwhm::T
 end
 
-(g::Gaussian)(dist) = exp(-4log(2) * (dist / g.fwhm)^2)
+(g::Gaussian)(dist) = exp(-4 * log(2) * (dist / g.fwhm)^2)
 
 # Alias Normal -> Gaussian
 const Normal = Gaussian
@@ -119,22 +119,22 @@ K(d) = \\left[1 + \\left(\\frac{d}{\\Gamma/2}\\right)^2 \\right]^{-1}
 ```
 
 ```
-  ┌────────────────────────────────────────┐          
+  ┌────────────────────────────────────────┐
 1 │                  .::.                  │ Moffat(x)
-  │                  : ::                  │          
-  │                 :' :':                 │          
-  │                 :  : :.                │          
-  │                :   :  :                │          
-  │               .:   :  :.               │          
-  │               :    :   :               │          
-  │              .:    :   '.              │          
-  │              :     :    '.             │          
-  │             :      :     :.            │          
-  │            :       :      :.           │          
-  │          .'        :       ':          │          
-  │       ..''         :         ':.       │          
-  │ ....:''            :            ''.... │          
-0 │''                  :                  '│          
+  │                  : ::                  │
+  │                 :' :':                 │
+  │                 :  : :.                │
+  │                :   :  :                │
+  │               .:   :  :.               │
+  │               :    :   :               │
+  │              .:    :   '.              │
+  │              :     :    '.             │
+  │             :      :     :.            │
+  │            :       :      :.           │
+  │          .'        :       ':          │
+  │       ..''         :         ':.       │
+  │ ....:''            :            ''.... │
+0 │''                  :                  '│
   └────────────────────────────────────────┘
   -2fwhm                               2fwhm
 ```
@@ -158,22 +158,22 @@ K(r) = \\left[\\frac{2J_1\\left(\\pi r \\right)}{\\pi r}\\right]^2 \\quad r \\ap
 ```
 
 ```
-  ┌────────────────────────────────────────┐            
+  ┌────────────────────────────────────────┐
 1 │                  .'::                  │ AiryDisk(x)
-  │                 .' :':                 │            
-  │                 :  : :                 │            
-  │                :'  : ':                │            
-  │                :   :  :                │            
-  │               .'   :  ':               │            
-  │               :    :   :               │            
-  │              .'    :   ':              │            
-  │              :     :    :              │            
-  │             .:     :    '.             │            
-  │             :      :     :             │            
-  │            .'      :     ':            │            
-  │            :       :      :.           │            
-  │           :        :       :           │            
-0 │..........:'        :        '..........│            
+  │                 .' :':                 │
+  │                 :  : :                 │
+  │                :'  : ':                │
+  │                :   :  :                │
+  │               .'   :  ':               │
+  │               :    :   :               │
+  │              .'    :   ':              │
+  │              :     :    :              │
+  │             .:     :    '.             │
+  │             :      :     :             │
+  │            .'      :     ':            │
+  │            :       :      :.           │
+  │           :        :       :           │
+0 │..........:'        :        '..........│
   └────────────────────────────────────────┘
   -2fwhm                               2fwhm
 ```
@@ -190,11 +190,19 @@ function (a::AiryDisk)(dist)
     return iszero(r) ? 1.0 : (2besselj1(π * r) / (π * r))^2
 end
 
-"""
-    construct(::PSFKernel, size; A=1, pa=0, location...)
-    construct(::PSFKernel, indices; A=1, pa=0, location...)
+end # module Kernels
 
-Constructs a synthetic PSF using the given kernel.
+using .Kernels
+
+###################
+
+"""
+    construct(kernel, size; A=1, pa=0, location...)
+    construct(kernel, indices; A=1, pa=0, location...)
+
+Constructs a synthetic PSF using the given kernel function.
+
+The kernel functions are expected to take the distance from the center of the PSF and return the density. [`Kernels`](@ref) contains common optical PSFs. These kernels are normalized such that the peak amplitude is 1.
 
 If `indices` are provided they will be used as the input grid. If `size` is provided the PSF will have the given size. It will have amplitude `A` and will be located at the given `location` (explained below) potentially rotated by an additional `pa` degrees clockwise. If no `location` is given, will assume the center of the frame.
 
@@ -202,7 +210,7 @@ If `indices` are provided they will be used as the input grid. If `size` is prov
 * `x, y` - Parsed as distance from the bottom-left corner of the image. Pixel convention is that `(1, 1)` is the center of the bottom-left pixel increasing right and up.
 * `r, theta` or `r, θ` - Parsed as polar coordinates from the center of the image. `theta` is a position angle.
 """
-function construct(kernel::PSFKernel,
+function construct(kernel::Function,
                    idxs::Tuple{<:AbstractVector, <:AbstractVector};
                    A=1,
                    pa=0,
@@ -212,15 +220,8 @@ function construct(kernel::PSFKernel,
     ys, xs = idxs
     ctr = _frame_center(idxs)
     x0, y0 = _get_location(ctr, values(location), pa)
-    r = @. sqrt((float(xs') - x0)^2 + (float(ys) - y0)^2)
-    return @. S(A * kernel(r))
+    return @. S(A * kernel(sqrt((float(xs') - x0)^2 + (float(ys) - y0)^2)))
 end
-
-end # module Kernels
-
-###################
-
-
 
 """
     construct(::AbstractMatrix, size; A=1, pa=0, degree=Linear(), location...)

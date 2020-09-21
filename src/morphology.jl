@@ -70,7 +70,7 @@ function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector;
     all(varframe .≈ 0) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=1)[1, :, :]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
-    for idx in axes(varcube, 1)
+    Threads.@threads for idx in axes(varcube, 1)
         @inbounds varcube[idx, :, :] .= varframe[1, :, :]
     end
     # derotate both cubes and perform a weighted sum
@@ -103,6 +103,7 @@ julia> flatten(X)
 [`expand`](@ref)
 """
 flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
+flatten(mat::AbstractMatrix) = mat
 
 """
     expand(matrix)
@@ -134,6 +135,7 @@ function expand(mat::AbstractMatrix)
     isinteger(x) || error("Array of size $((n, x, x)) is not compatible with input matrix of size $(size(mat)).")
     return reshape(mat, n, Int(x), Int(x))
 end
+expand(cube::AbstractArray{T,3}) where {T} = cube
 
 
 ###############################################################################
@@ -148,7 +150,7 @@ function derotate!(cube::AbstractArray{T,3},
                    angles::AbstractVector;
                    fill=zero(T),
                    degree=Linear()) where T
-    for i in axes(cube, 1)
+    Threads.@threads for i in axes(cube, 1)
         frame = @view cube[i, :, :]
         frame .= imrotate(frame, deg2rad(angles[i]), axes(frame), degree, fill)
     end
