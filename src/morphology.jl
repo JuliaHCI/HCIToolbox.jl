@@ -285,7 +285,7 @@ end
     crop(frame, size; center=center(frame), force=false)
     crop(cube, size; center=center(frame), force=false)
 
-Crop a frame or cube to `size`. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid allocations, consider [`cropview`](@ref).
+Crop a frame or cube to `size`. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid uneven (odd) cropping, we may change `size`. To disable this behavior, set `force` to `true`. To avoid allocations, consider [`cropview`](@ref).
 """
 crop(input, size; kwargs...) = collect(cropview(input, size; kwargs...))
 
@@ -294,7 +294,7 @@ cropview(input, size::Integer; kwargs...) = cropview(input, (size, size); kwargs
 """
     cropview(cube::AbstractArray{T, 3}, size; center=center(frame), force=false)
 
-Crop a frame to `size`, returning a view of the frame.
+Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid uneven (odd) cropping, we may change `size`. To disable this behavior, set `force` to `true`.
 
 # See Also
 * [`crop`](@ref)
@@ -311,7 +311,7 @@ end
 """
     cropview(frame::AbstractMatrix, size; center=center(frame), force=false)
 
-Crop a frame to `size`, returning a view of the frame.
+Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid uneven (odd) cropping, we may change `size`. To disable this behavior, set `force` to `true`.
 
 # See Also
 * [`crop`](@ref)
