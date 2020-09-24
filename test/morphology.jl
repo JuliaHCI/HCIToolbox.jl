@@ -97,7 +97,9 @@ end
     @test crop(cube, 51, center=(52, 50)) == cube[:, 27:77, 25:75]
 
     @test size(crop(cube, 51)) == (10, 51, 51)
-    @test size(crop(cube, 50)) == (10, 51, 51)
+    @test_logs (:info, "adjusted size to (51, 51) to avoid uneven (odd) cropping") begin
+        @test size(crop(cube, 50)) == (10, 51, 51)
+    end
     @test size(crop(cube, 50; force=true)) == (10, 50, 50)
 
     cube_crop_view = cropview(cube, 51)
@@ -112,7 +114,9 @@ end
     @test crop(frame, 51, center=(52, 50)) == frame[27:77, 25:75]
 
     @test size(crop(frame, 51)) == (51, 51)
-    @test size(crop(frame, 50)) == (51, 51)
+    @test_logs (:info, "adjusted size to (51, 51) to avoid uneven (odd) cropping") begin
+        @test size(crop(frame, 50)) == (51, 51)
+    end
     @test size(crop(frame, 50; force=true)) == (50, 50)
 
     frame_crop_view = cropview(frame, 51)

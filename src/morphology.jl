@@ -331,6 +331,6 @@ Given two image shapes, will adjust the output size to make sure even amounts ar
 """
 function check_size(frame_size, crop_size)
     out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
-    out != crop_size && @info "adjusted size to $out to avoid odd-sized cropping"
+    out != crop_size && @info "adjusted size to $out to avoid uneven (odd) cropping"
     return out
 end
