@@ -278,3 +278,59 @@ function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Tuple}; 
     end
     return cube
 end
+
+#################################
+
+"""
+    crop(frame, size; center=center(frame), force=false)
+    crop(cube, size; center=center(frame), force=false)
+
+Crop a frame or cube to `size`. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid allocations, consider [`cropview`](@ref).
+"""
+crop(input, size; kwargs...) = collect(cropview(input, size; kwargs...))
+
+cropview(input, size::Integer; kwargs...) = cropview(input, (size, size); kwargs...)
+
+"""
+    cropview(cube::AbstractArray{T, 3}, size; center=center(frame), force=false)
+
+Crop a frame to `size`, returning a view of the frame.
+
+# See Also
+* [`crop`](@ref)
+"""
+function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false) where T    
+    frame_size = (Base.size(cube, 2), Base.size(cube, 3))
+    out_size = force ? size : check_size(frame_size, size)
+    wing = @. (out_size - 1) / 2
+    _init = @. floor(Int, center - wing)
+    _end = @. floor(Int, center + wing)
+    return view(cube, :, _init[1]:_end[1], _init[2]:_end[2])
+end
+
+"""
+    cropview(frame::AbstractMatrix, size; center=center(frame), force=false)
+
+Crop a frame to `size`, returning a view of the frame.
+
+# See Also
+* [`crop`](@ref)
+"""
+function cropview(frame::AbstractMatrix, size::Tuple; center=center(frame), force=false)
+    out_size = force ? size : check_size(Base.size(frame), size)
+    wing = @. (out_size - 1) / 2
+    _init = @. floor(Int, center - wing)
+    _end = @. floor(Int, center + wing)
+    return view(frame, _init[1]:_end[1], _init[2]:_end[2])
+end
+
+"""
+    HCIToolbox.check_size(frame_size, crop_size)
+
+Given two image shapes, will adjust the output size to make sure even amounts are clipped off each side.
+"""
+function check_size(frame_size, crop_size)
+    out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
+    out != crop_size && @info "adjusted size to $out to avoid odd-sized cropping"
+    return out
+end

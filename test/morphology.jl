@@ -89,3 +89,33 @@ end
     end
     @test all(shift_frame(cube, 1, 1, fill=NaN)[:, 3, 1] .=== NaN)
 end
+
+@testset "crop & cropview" begin
+    cube = zeros(10, 101, 101)
+
+    @test crop(cube, 51) == crop(cube, (51, 51)) == cube[:, 26:76, 26:76]
+    @test crop(cube, 51, center=(52, 50)) == cube[:, 27:77, 25:75]
+
+    @test size(crop(cube, 51)) == (10, 51, 51)
+    @test size(crop(cube, 50)) == (10, 51, 51)
+    @test size(crop(cube, 50; force=true)) == (10, 50, 50)
+
+    cube_crop_view = cropview(cube, 51)
+    @test parent(cube_crop_view) === cube
+    @test collect(cube_crop_view) == Array(cube_crop_view) == crop(cube, 51)
+
+    ### frames
+
+    frame = zeros(101, 101)
+
+    @test crop(frame, 51) == crop(frame, (51, 51)) == frame[26:76, 26:76]
+    @test crop(frame, 51, center=(52, 50)) == frame[27:77, 25:75]
+
+    @test size(crop(frame, 51)) == (51, 51)
+    @test size(crop(frame, 50)) == (51, 51)
+    @test size(crop(frame, 50; force=true)) == (50, 50)
+
+    frame_crop_view = cropview(frame, 51)
+    @test parent(frame_crop_view) === frame
+    @test collect(frame_crop_view) == Array(frame_crop_view) == crop(frame, 51)
+end
