@@ -2,7 +2,6 @@ using Statistics
 using ImageTransformations
 using CoordinateTransformations
 using Interpolations
-using PaddedViews
 
 ###############################################################################
 # Stacking routines
@@ -300,10 +299,10 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 # See Also
 * [`crop`](@ref)
 """
-function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false) where T    
+function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false, verbose=true) where T    
     frame_size = (Base.size(cube, 2), Base.size(cube, 3))
     out_size = force ? size : check_size(frame_size, size)
-    out_size != size && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
+    out_size != size && verbose && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
     wing = @. (out_size - 1) / 2
     _init = @. floor(Int, center - wing)
     _end = @. floor(Int, center + wing)
@@ -318,9 +317,9 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 # See Also
 * [`crop`](@ref)
 """
-function cropview(frame::AbstractMatrix, size::Tuple; center=center(frame), force=false)
+function cropview(frame::AbstractMatrix, size::Tuple; center=center(frame), force=false, verbose=true)
     out_size = force ? size : check_size(Base.size(frame), size)
-    out_size != size && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
+    out_size != size && verbose && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
     wing = @. (out_size - 1) / 2
     _init = @. floor(Int, center - wing)
     _end = @. floor(Int, center + wing)
@@ -335,38 +334,4 @@ Given two image shapes, will adjust the output size to make sure even amounts ar
 function check_size(frame_size, crop_size)
     out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
     return out
-end
-
-"""
-    scale(cube::AbstractArray{T,3}, scales)
-
-Linearly stretch each frame in `cube` by the corresponding scale in `scales`. Uses bilinear interpolaiton internally. When any scale is less than 1 the contraction can cause aliasing if the data is not low-pass filtered. The output cube will have a size just large enoug to accommadate the maximum scale.
-"""
-function scale(cube::AbstractArray{T, 3}, scales) where T
-    frame_size = (size(cube, 2), size(cube, 3))
-    max_scale = maximum(scales)
-    out_size = check_size(frame_size, ceil.(Int, max_scale .* frame_size))
-    out = similar(cube, size(cube, 1), out_size...)
-    Threads.@threads for i in axes(cube, 1)
-        out[i, :, :] .= scale(cube[i, :, :], scales[i], out_size)
-    end
-    return out
-end
-
-"""
-    scale(frame::AbstractMatrix, scale)
-
-Linearly stretch `frame` with the ratio `scale`. Uses bilinear interpolation internally. When `scale` is less than 1, the contraction can cause aliasing if the data is not low-pass filtered.
-"""
-scale(frame::AbstractMatrix, scale) = imresize(frame; ratio=scale)
-
-"""
-    scale(frame::AbstractMatrix, scale, out_size)
-
-Linearly stretch `frame` with the ratio `scale`, padding symmetrically with zeros to match `out_size`. Uses bilinear interpolation internally. When `scale` is less than 1, the contraction can cause aliasing if the data is not low-pass filtered.
-"""
-function scale(frame::AbstractMatrix{T}, scale, out_size) where T
-    res_frame = imresize(frame; ratio=scale)
-    init_pos = (out_size .- size(res_frame)) .÷ 2 .+ 1
-    return PaddedView(zero(T), res_frame, out_size, init_pos)
 end
