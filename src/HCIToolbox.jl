@@ -16,6 +16,7 @@ export derotate,
        normalize_par_angles!,
        inject,
        inject!,
+       scale,
        shift_frame,
        shift_frame!
 

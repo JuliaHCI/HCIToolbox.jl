@@ -2,6 +2,7 @@ using Statistics
 using ImageTransformations
 using CoordinateTransformations
 using Interpolations
+using PaddedViews
 
 ###############################################################################
 # Stacking routines
@@ -333,4 +334,38 @@ function check_size(frame_size, crop_size)
     out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
     out != crop_size && @info "adjusted size to $out to avoid uneven (odd) cropping"
     return out
+end
+
+"""
+    scale(cube::AbstractArray{T,3}, scales)
+
+Linearly stretch each frame in `cube` by the corresponding scale in `scales`. Uses bilinear interpolaiton internally. When any scale is less than 1 the contraction can cause aliasing if the data is not low-pass filtered. The output cube will have a size just large enoug to accommadate the maximum scale.
+"""
+function scale(cube::AbstractArray{T, 3}, scales) where T
+    frame_size = (size(cube, 2), size(cube, 3))
+    max_scale = maximum(scales)
+    out_size = check_size(frame_size, ceil.(Int, max_scale .* frame_size))
+    out = similar(cube, size(cube, 1), out_size...)
+    Threads.@threads for i in axes(cube, 1)
+        out[i, :, :] .= scale(cube[i, :, :], scales[i], out_size)
+    end
+    return out
+end
+
+"""
+    scale(frame::AbstractMatrix, scale)
+
+Linearly stretch `frame` with the ratio `scale`. Uses bilinear interpolation internally. When `scale` is less than 1, the contraction can cause aliasing if the data is not low-pass filtered.
+"""
+scale(frame::AbstractMatrix, scale) = imresize(frame; ratio=scale)
+
+"""
+    scale(frame::AbstractMatrix, scale, out_size)
+
+Linearly stretch `frame` with the ratio `scale`, padding symmetrically with zeros to match `out_size`. Uses bilinear interpolation internally. When `scale` is less than 1, the contraction can cause aliasing if the data is not low-pass filtered.
+"""
+function scale(frame::AbstractMatrix{T}, scale, out_size) where T
+    res_frame = imresize(frame; ratio=scale)
+    init_pos = (out_size .- size(res_frame)) .÷ 2
+    return PaddedView(zero(T), res_frame, out_size, init_pos)
 end
