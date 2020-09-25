@@ -303,6 +303,7 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false) where T    
     frame_size = (Base.size(cube, 2), Base.size(cube, 3))
     out_size = force ? size : check_size(frame_size, size)
+    out_size != size && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
     wing = @. (out_size - 1) / 2
     _init = @. floor(Int, center - wing)
     _end = @. floor(Int, center + wing)
@@ -319,6 +320,7 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 """
 function cropview(frame::AbstractMatrix, size::Tuple; center=center(frame), force=false)
     out_size = force ? size : check_size(Base.size(frame), size)
+    out_size != size && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
     wing = @. (out_size - 1) / 2
     _init = @. floor(Int, center - wing)
     _end = @. floor(Int, center + wing)
@@ -332,7 +334,6 @@ Given two image shapes, will adjust the output size to make sure even amounts ar
 """
 function check_size(frame_size, crop_size)
     out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
-    out != crop_size && @info "adjusted size to $out to avoid uneven (odd) cropping"
     return out
 end
 
