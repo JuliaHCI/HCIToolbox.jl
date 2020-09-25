@@ -9,4 +9,5 @@ Random.seed!(8799)
     include("masking.jl")
     include("angles.jl")
     include("inject.jl")
+    include("scaling.jl")
 end
