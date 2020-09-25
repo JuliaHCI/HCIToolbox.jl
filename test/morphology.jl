@@ -123,3 +123,18 @@ end
     @test parent(frame_crop_view) === frame
     @test collect(frame_crop_view) == Array(frame_crop_view) == crop(frame, 51)
 end
+
+@testset "scale" begin
+    data = ones(3, 2, 2)
+    scales = [1, 2, 3]
+    sc_cube = scale(data, scales)
+    @test size(sc_cube) == (3, 6, 6)
+    @test all(sc_cube[1, 3:4, 3:4] .≈ 1)
+    @test all(sc_cube[2, 2:5, 2:5] .≈ 1)
+    @test all(sc_cube[3, :, :] .≈ 1)
+    @test sum(sc_cube, dims=(2, 3)) ≈ [4, 16, 36]
+
+    for i in axes(data, 1)
+        @test scale(data[i, :, :], scales[i], (6, 6)) ≈ sc_cube[i, :, :]
+    end
+end

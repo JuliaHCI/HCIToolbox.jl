@@ -366,6 +366,6 @@ Linearly stretch `frame` with the ratio `scale`, padding symmetrically with zero
 """
 function scale(frame::AbstractMatrix{T}, scale, out_size) where T
     res_frame = imresize(frame; ratio=scale)
-    init_pos = (out_size .- size(res_frame)) .÷ 2
+    init_pos = (out_size .- size(res_frame)) .÷ 2 .+ 1
     return PaddedView(zero(T), res_frame, out_size, init_pos)
 end
