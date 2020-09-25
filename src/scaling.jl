@@ -104,3 +104,10 @@ function invscale_and_collapse(stack_cube::AbstractArray{T, 3}, scales, size; kw
     end
     return out
 end
+
+"""
+    scale_list(wavelengths)
+
+Returns a list of scaling factors for aligning SDI tensors from a list of wavelengths.
+"""
+scale_list(wavelengths) = maximum(wavelengths) ./ wavelengths

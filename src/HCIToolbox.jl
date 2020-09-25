@@ -21,7 +21,8 @@ export derotate,
        shift_frame,
        shift_frame!,
        scale_and_stack,
-       invscale_and_collapse
+       invscale_and_collapse,
+       scale_list
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")

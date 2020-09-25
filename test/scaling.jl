@@ -40,3 +40,8 @@ end
     @test size(cube) == (4, 2, 2)
     @test all(cube .≈ 1)
 end
+
+@testset "scale list" begin
+    waves = [100, 200, 300]
+    @test scale_list(waves) ≈ [3, 1.5, 1]    
+end
