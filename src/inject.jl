@@ -369,7 +369,7 @@ end
 
 function normalize_psf!(psf::AbstractMatrix, fwhm, factor=1)
     ap = CircularAperture(center(psf), factor * fwhm / 2)
-    area = aperture_photometry(ap, psf).aperture_sum
+    area = photometry(ap, psf).aperture_sum
     return psf ./= area
 end
 normalize_psf(psf, fwhm, factor=1) = normalize_psf!(deepcopy(psf), fwhm, factor)
