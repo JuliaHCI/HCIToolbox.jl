@@ -64,20 +64,19 @@ collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, kw
     _collapse_deweighted!(deepcopy(cube), angles; kwargs...)
 
 function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T), kwargs...) where T
-    varframe = var(cube, dims=1)
+    varframe = var(cube, dims=1)[1, :, :]
 
     # have to check if no variance otherwise the returns will be NaN
-    all(varframe .≈ 0) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=1)[1, :, :]
+    all(p -> p ≈ 0, varframe) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=1)[1, :, :]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
+    # derotate both cubes
     Threads.@threads for idx in axes(varcube, 1)
-        @inbounds varcube[idx, :, :] .= varframe[1, :, :]
+        cube[idx, :, :] .= derotate(view(cube, idx, :, :), angles[idx]; fill=fill, kwargs...)
+        varcube[idx, :, :] .= derotate(varframe, angles[idx]; fill=fill, kwargs...)
     end
-    # derotate both cubes and perform a weighted sum
-    derotate!(cube, angles; fill=fill, kwargs...)
-    derotate!(varcube, angles; fill=fill, kwargs...)
 
-    # calculate collapsed sum and replace NaNs with our fill value
+    # calculate weighted sum and replace NaNs with our fill value
     out = sum(cube ./ varcube, dims=1) ./ sum(inv.(varcube), dims=1)
     @. out[isnan(out)] = fill
     return out[1, :, :]
@@ -199,7 +198,7 @@ julia> derotate(X, [90])[1, :, :]
 """
 function derotate(cube::AbstractArray{T,3}, angles::AbstractVector; kwargs...) where T
     all(iszero, angles) && return cube
-    return derotate!(deepcopy(cube), angles; kwargs...)
+    return derotate!(copy(cube), angles; kwargs...)
 end
 
 #################################
@@ -240,8 +239,8 @@ Shift each frame of `cube` by `dx` and `dy`, which can be integers or vectors. T
 # See Also
 [`shift_frame!`](@ref)
 """
-shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dx, dy; fill=fill)
-shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame!(deepcopy(cube), dpos; fill=fill)
+shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(copy(cube), dx, dy; fill=fill)
+shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame!(copy(cube), dpos; fill=fill)
 
 """
     shift_frame!(cube, dx, dy; fill=0)
@@ -331,7 +330,4 @@ end
 
 Given two image shapes, will adjust the output size to make sure even amounts are clipped off each side.
 """
-function check_size(frame_size, crop_size)
-    out = @. ifelse(iseven(frame_size - crop_size), crop_size, crop_size + 1)
-    return out
-end
+check_size(frame_size, crop_size) = map((f, c) -> iseven(f - c) ? c : c + 1, frame_size, crop_size)
