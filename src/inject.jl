@@ -318,7 +318,7 @@ julia> inject(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
  0.0  1.0  1.0  1.0  0.0
 ```
 """
-inject(frame::AbstractMatrix, kernel; kwargs...) = inject!(deepcopy(frame), kernel; kwargs...)
+inject(frame::AbstractMatrix, kernel; kwargs...) = inject!(copy(frame), kernel; kwargs...)
 
 """
     inject!(frame, ::PSFKernel; A=1, location...)
@@ -326,9 +326,21 @@ inject(frame::AbstractMatrix, kernel; kwargs...) = inject!(deepcopy(frame), kern
 
 In-place version of [`inject`](@ref) which modifies `frame`.
 """
-function inject!(frame::AbstractMatrix, kernel; kwargs...)
+function inject!(frame::AbstractMatrix{T}, kernel; A=1, pa=0, location...) where T
+    ctr = _frame_center(frame)
+    x0, y0 = _get_location(ctr, values(location), pa)
+    for idx in CartesianIndices(frame)
+        d = sqrt((idx.I[1] - y0)^2 + (idx.I[2] - x0)^2)
+        frame[idx] += A * kernel(d)
+    end
+
+    return frame
+end
+
+function inject!(frame::AbstractMatrix{T}, kernel::AbstractMatrix; kwargs...) where T
     return frame .+= construct(kernel, axes(frame); kwargs...)
 end
+
 
 """
     inject(cube, ::PSFKernel, [angles]; A=1, location...)
@@ -336,10 +348,8 @@ end
 
 Injects `A * img` into each frame of `cube` at the position given by the keyword arguments. If `angles` are provided, the position in the keyword arguments will correspond to the `img` position on the first frame of the cube, with each subsequent repositioned `img` being rotated by `-angles` in degrees. This is useful for fake companion injection. If no `location` is given, will assume the center of each frame. For empirical PSFs, `degree` is the corresponding `Interpolations.Degree` for the B-Spline used to subsample the pixel values.
 """
-inject(cube::AbstractArray{T,3}, kernel; kwargs...) where T =
-    inject!(deepcopy(cube), kernel; kwargs...)
-inject(cube::AbstractArray{T,3}, kernel, angles; kwargs...) where T =
-    inject!(deepcopy(cube), kernel, angles; kwargs...)
+inject(cube::AbstractArray{T,3}, args...; kwargs...) where T =
+    inject!(copy(cube), args...; kwargs...)
 
 """
     inject!(cube, ::PSFKernel, [angles]; A=1, location...)
@@ -348,7 +358,7 @@ inject(cube::AbstractArray{T,3}, kernel, angles; kwargs...) where T =
 In-place version of [`inject`](@ref) which modifies `cube`.
 """
 function inject!(cube::AbstractArray{T,3}, kernel; kwargs...) where T
-    for idx in axes(cube, 1)
+    Threads.@threads for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
         inject!(frame, kernel; kwargs...)
     end
@@ -357,12 +367,52 @@ end
 
 function inject!(cube::AbstractArray{T,3}, kernel, angles::AbstractVector; kwargs...) where T
     size(cube, 1) == length(angles) ||
-        error("Number of ADI frames does not much between cube and angles- got $(size(cube, 1)) and $(length(angles))")
-    for idx in axes(cube, 1)
+        error("Number of ADI frames does not much between cube ($(size(cube, 1))) and angles ($(length(angles)))")
+    Threads.@threads for idx in axes(cube, 1)
         frame = @view cube[idx, :, :]
         inject!(frame, kernel; pa=angles[idx], kwargs...)
     end
     return cube
+end
+
+function inject!(cube::AbstractArray{T,3}, kernel::AbstractMatrix; degree=Linear(), A=1, location...) where T
+    etp = ImageTransformations.box_extrapolation(kernel, degree, zero(T))
+
+    ctr = center(cube)[2:3]
+
+    Threads.@threads for idx in axes(cube, 1)
+        frame = @view cube[idx, :, :]
+        # have to do reversing and flip sign because `warp` moves canvas not image
+        pos = _get_location(ctr, values(location)) |> reverse
+        tform = Translation(center(kernel) - pos)
+        scaledwarp!(frame, etp, ImageTransformations.try_static(tform, frame), A)
+    end
+    return cube
+end
+
+function inject!(cube::AbstractArray{T,3}, kernel::AbstractMatrix, angles::AbstractVector; degree=Linear(), A=1, location...) where T
+    size(cube, 1) == length(angles) ||
+        error("Number of ADI frames does not much between cube ($(size(cube, 1))) and angles ($(length(angles)))")
+
+    etp = ImageTransformations.box_extrapolation(kernel, degree, zero(T))
+
+    ctr = center(cube)[2:3]
+
+    Threads.@threads for idx in axes(cube, 1)
+        frame = @view cube[idx, :, :]
+        # have to do reversing and flip sign because `warp` moves canvas not image
+        pos = _get_location(ctr, values(location), angles[idx]) |> reverse
+        tform = Translation(center(kernel) - pos)
+        scaledwarp!(frame, etp, ImageTransformations.try_static(tform, frame), A)
+    end
+    return cube
+end
+
+function scaledwarp!(frame, etp, tform, A=1)
+    @inbounds for I in CartesianIndices(frame)
+        frame[I] += A * ImageTransformations._getindex(etp, tform(SVector(I.I)))
+    end
+    frame
 end
 
 ###################
