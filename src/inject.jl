@@ -320,6 +320,26 @@ julia> inject(zeros(5, 5), ones(3, 3), r=1.5, theta=90) # polar coords
 """
 inject(frame::AbstractMatrix, kernel; kwargs...) = inject!(copy(frame), kernel; kwargs...)
 
+function inject(cube::AbstractArray{T,3}, kernel::AbstractMatrix, angles::AbstractVector; degree=Linear(), A=1, location...) where T
+    size(cube, 1) == length(angles) ||
+        error("Number of ADI frames does not much between cube ($(size(cube, 1))) and angles ($(length(angles)))")
+
+    etp = ImageTransformations.box_extrapolation(kernel, degree, zero(T))
+
+    ctr = center(cube)[2:3]
+    idx = firstindex(cube, 1)
+    frames = mapslices(cube, dims=[2,3]) do frame
+        # frame = @view cube[idx, :, :]
+        # have to do reversing and flip sign because `warp` moves canvas not image
+        pos = _get_location(ctr, values(location), angles[idx]) |> reverse
+        idx += 1
+        tform = Translation(center(kernel) - pos)
+        scaledwarp(frame, etp, ImageTransformations.try_static(tform, frame), A)
+    end
+    return frames
+end
+
+
 """
     inject!(frame, ::PSFKernel; A=1, location...)
     inject!(frame, ::AbstractMatrix; A=1, degree=Linear(), location...)
@@ -408,9 +428,15 @@ function inject!(cube::AbstractArray{T,3}, kernel::AbstractMatrix, angles::Abstr
     return cube
 end
 
-function scaledwarp!(frame, etp, tform, A=1)
+function scaledwarp(frame, etp, tform, A)
+    map(CartesianIndices(frame)) do I
+        frame[I] + A * etp[Tuple(tform(SVector(I.I)))...]
+    end
+end
+
+function scaledwarp!(frame, etp, tform, A)
     @inbounds for I in CartesianIndices(frame)
-        frame[I] += A * ImageTransformations._getindex(etp, tform(SVector(I.I)))
+        frame[I] += A * etp[Tuple(tform(SVector(I.I)))...]
     end
     frame
 end
