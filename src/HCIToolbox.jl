@@ -34,4 +34,6 @@ include("angles.jl")
 
 include("scaling.jl")
 
+include("geometry.jl")
+
 end
