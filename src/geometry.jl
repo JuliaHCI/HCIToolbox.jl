@@ -39,13 +39,13 @@ end
 
 Base.@propagate_inbounds function Base.getindex(view::AnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
     @boundscheck checkbounds(parent(view), idx...)
-    @inbounds ifelse(inside_annulus(view, idx...), convert(T, parent(view)[idx...]), view.fill)
+    ifelse(inside_annulus(view, idx...), convert(T, parent(view)[idx...]), view.fill)
 end
 
 Base.@propagate_inbounds function Base.setindex!(view::AnnulusView{T,N}, val, idx::Vararg{<:Integer,N}) where {T,N}
     @boundscheck checkbounds(parent(view), idx...)
     if inside_annulus(view, idx...)
-        @inbounds parent(view)[idx...] = val
+        parent(view)[idx...] = val
     else
         view.fill
     end
