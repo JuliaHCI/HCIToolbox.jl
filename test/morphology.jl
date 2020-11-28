@@ -13,19 +13,19 @@
     end
 
     # Simple regression
-    X = rand(10, 512, 512)
+    X = rand(rng, 10, 512, 512)
     @test expand(flatten(X)) == X
 end
 
 @testset "derotate" begin
-    X = rand(10, 512, 512)
+    X = rand(rng, 10, 512, 512)
     
     # test no-op
     @test derotate(X, zeros(10)) === X
 
     # Simple regression (but be careful to only test some inner part that won't be clipped)
-    X = rand(10, 512, 512)
-    θ = 90 .* rand(10)
+    X = rand(rng, 10, 512, 512)
+    θ = 90 .* rand(rng, 10)
     B = derotate!(derotate(X, θ), -θ)
     # take some inner indices not wiped out due to cropping
     idxs = Colon(), 250:262, 250:262
@@ -45,8 +45,8 @@ end
 end
 
 @testset "collapse" begin
-    X = rand(10, 512, 512)
-    angles = sort!(90 .* rand(10))
+    X = rand(rng, 10, 512, 512)
+    angles = sort!(90 .* rand(rng, 10))
 
     @test collapse(X) == collapse(X; method = median)
     @test collapse(X; method = mean) == mean(X, dims = 1)[1, :, :]
