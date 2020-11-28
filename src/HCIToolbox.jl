@@ -23,6 +23,10 @@ export derotate,
        scale_and_stack,
        invscale_and_collapse,
        scale_list
+       # geometry
+       AnnulusView
+       inverse!
+       inverse
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
