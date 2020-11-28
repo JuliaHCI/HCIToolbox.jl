@@ -24,6 +24,44 @@ function AnnulusView(parent::AbstractArray{T,3};
     return AnnulusView(parent, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
 end
 
+"""
+    AnnulusView(arr::AbstractArray{T,3}, angles; inner=0, outer=last(size(parent))/2+0.5, fill=0, threshold=0, fwhm=0, radius=inner+fwhm/2)
+"""
+function AnnulusView(parent::AbstractArray{T,3},
+                     angles;
+                     inner=0,
+                     outer=(size(parent, 3) + 1) / 2,
+                     fill=zero(T),
+                     threshold=0,
+                     fwhm=0,
+                     radius=inner+fwhm/2) where T
+    # check inputs
+    0 ≤ inner < outer || error("Invalid annulus region [$inner, $outer]")
+    size(parent, 1) == size(angles, 1) || error("cube and angles do not have same number of frames")
+
+    # minimin rotation between frames
+    pa_thresh = rad2deg(2 * atan(threshold * fwhm / (2 * radius)))
+    mid_range = abs(maximum(angles) - minimum(angles))
+    if pa_thresh ≥ mid_range * 0.9
+        old_pa_thresh = pa_thresh
+        pa_thresh = mid_range * 0.9
+        @info "PA threshold was too large, setting to $pa_thresh"
+    end
+
+    time_axis = [firstindex(angles)]
+    for idx in Iterators.rest(axes(angles, 1), 2)
+        prev = angles[time_axis[end]]
+        if abs(angles[idx] - prev) ≥ pa_thresh
+            push!(time_axis, idx)
+        end
+    end
+
+    space_indices = CartesianIndices((axes(parent, 2), axes(parent, 3)))
+    space_axis = filter(idx -> inside_annulus(inner, outer, center(parent)[2:3], idx), space_indices)
+    
+    return AnnulusView(parent, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
+end
+
 Base.parent(view::AnnulusView) = view.parent
 Base.size(view::AnnulusView) = size(parent(view))
 Base.copy(view::AnnulusView) = AnnulusView(copy(parent(view)), view.rmin, view.rmax, view.indices, view.fill)

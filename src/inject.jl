@@ -430,13 +430,13 @@ end
 
 function scaledwarp(frame, etp, tform, A)
     map(CartesianIndices(frame)) do I
-        frame[I] + A * etp[Tuple(tform(SVector(I.I)))...]
+        frame[I] + A * etp(Tuple(tform(SVector(I.I)))...)
     end
 end
 
 function scaledwarp!(frame, etp, tform, A)
     @inbounds for I in CartesianIndices(frame)
-        frame[I] += A * etp[Tuple(tform(SVector(I.I)))...]
+        frame[I] += A * etp(Tuple(tform(SVector(I.I)))...)
     end
     frame
 end

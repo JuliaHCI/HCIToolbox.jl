@@ -23,4 +23,8 @@
     nanview = AnnulusView(data; fill=NaN)
     @test_throws BoundsError nanview[-1, 2, 3]
     @test isnan(nanview[1, 1, 1])
+
+    angles = [10, 20, 40, 50, 70, 80, 90, 120, 150, 180]
+    av = AnnulusView(data, angles; threshold=1, fwhm=10, radius=30) # δ = 37°
+    @test av.indices[1] == [1, 3, 5, 7, 8, 9, 10]
 end
