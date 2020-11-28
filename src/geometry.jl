@@ -34,7 +34,7 @@ function AnnulusView(parent::AbstractArray{T,3},
                      fill=zero(T),
                      threshold=0,
                      fwhm=0,
-                     radius=inner+fwhm/2) where T
+                     radius=(outer - inner)/2 + inner) where T
     # check inputs
     0 ≤ inner < outer || error("Invalid annulus region [$inner, $outer]")
     size(parent, 1) == size(angles, 1) || error("cube and angles do not have same number of frames")
