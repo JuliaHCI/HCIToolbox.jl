@@ -9,6 +9,9 @@ struct AnnulusView{T,N,M<:AbstractArray{T,N},IT} <: AbstractArray{T,N}
     fill::T
 end
 
+"""
+    AnnulusView(arr::AbstractArray{T,3}; inner=0, outer=last(size(parent)) / 2 + 0.5, fill=0)
+"""
 function AnnulusView(parent::AbstractArray{T,3};
                      inner=0,
                      outer=(size(parent, 3) + 1) / 2,
@@ -16,32 +19,46 @@ function AnnulusView(parent::AbstractArray{T,3};
     # check inputs
     0 ≤ inner < outer || error("Invalid annulus region [$inner, $outer]")
     time_axis = axes(parent, 1)
-    space_axis = Iterators.filter(idx -> inside_annulus(inner, outer, center(parent), idx), eachindex(parent))
+    space_indices = CartesianIndices((axes(parent, 2), axes(parent, 3)))
+    space_axis = filter(idx -> inside_annulus(inner, outer, center(parent)[2:3], idx), space_indices)
     return AnnulusView(parent, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
+end
+
+"""
+    AnnulusView(mat::AbstractMatrix, size; inner=0, outer=last(size) / 2 + 0.5, fill=0)
+    AnnulusView(mat::AbstractMatrix, size...; inner=0, outer=last(size) / 2 + 0.5, fill=0)
+"""
+AnnulusView(mat::AbstractMatrix, sz; kwargs...) = AnnulusView(mat::AbstractMatrix, sz...; kwargs...)
+
+function AnnulusView(mat::AbstractMatrix{T},
+    sz::Vararg{<:Integer,3};
+    kwargs...) where T
+    # set up cube with correct size
+    base = fill!(similar(mat, sz), fill)
+    view = AnnulusView(base, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
+    # use copyto! to put values in
+    copyto!(view, mat)
+    return view
 end
 
 Base.parent(view::AnnulusView) = view.parent
 Base.size(view::AnnulusView) = size(parent(view))
+Base.copy(view::AnnulusView) = AnnulusView(copy(parent(view)), view.rmin, view.rmax, view.indices, view.fill)
 
-
-inside_annulus(rmin, rmax, center, idx...) = inside_annulus(rmin, rmax, center, SVector(idx...))
-inside_annulus(rmin, rmax, center, idx::CartesianIndex) = inside_annulus(rmin, rmax, center, SVector(Tuple(idx)))
-inside_annulus(view::AnnulusView, args...) = inside_annulus(view.rmin, view.rmax, center(view), args...)
-function inside_annulus(rmin, rmax, center, position::AbstractVector)
-    Δ = center[end-1:end] - position[end-1:end]
+inside_annulus(view::AnnulusView, args...) = inside_annulus(view.rmin, view.rmax, center(view)[2:3], args...)
+inside_annulus(rmin, rmax, center, idx...) = inside_annulus(rmin, rmax, center, SVector(idx[end-1:end]))
+inside_annulus(rmin, rmax, center, idx::CartesianIndex{2}) = inside_annulus(rmin, rmax, center, SVector(idx.I))
+function inside_annulus(rmin, rmax, center::AbstractVector, position::AbstractVector)
+    Δ = center - position
     r = sqrt(sum(abs2, Δ))
     return rmin ≤ r ≤ rmax
 end
 
-function Base.getindex(view::AnnulusView, idx...)
-    return inside_annulus(view, idx...) ? parent(view)[idx...] : view.fill
+function Base.getindex(view::AnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
+    ifelse(inside_annulus(view, idx...), convert(T, parent(view)[idx...]), view.fill)
 end
 
-function Base.getindex(view::AnnulusView, tidx, pos...)
-    return inside_annulus(view, pos...) ? parent(view)[tidx, pos...] : view.fill
-end
-
-function Base.setindex!(view::AnnulusView, val, idx...)
+function Base.setindex!(view::AnnulusView{T,N}, val, idx::Vararg{<:Integer,N}) where {T,N}
     if inside_annulus(view, idx...)
         parent(view)[idx...] = val
     else
@@ -49,35 +66,32 @@ function Base.setindex!(view::AnnulusView, val, idx...)
     end
 end
 
-function Base.setindex!(view::AnnulusView, val, tidx, pos...)
-    if inside_annulus(view, pos...)
-        parent(view)[tidx, pos...] = val
-    else
-        view.fill
+function flatten(view::AnnulusView)
+    dims = map(length, view.indices)
+    output = similar(parent(view), dims...)
+    @inbounds for idx in CartesianIndices(output)
+        tidx, pidx = Tuple(idx)
+        i = view.indices[1][tidx]
+        j = view.indices[2][pidx]
+        output[idx] = view.parent[i, j]
     end
+    return output
 end
-
-function flatten(view::AnnulusView, ::Val{true})
-    map(Iterators.product(view.indices...)) do (tidx, pidx)
-        pidx′ = CartesianIndex(pidx.I[2:3])
-       parent(view)[tidx, pidx′]
-    end
-end
-
-Base.copy(view::AnnulusView) = AnnulusView(copy(view.parent), view.rmin, view.rmax, view.indices, view.fill)
 
 function Base.copyto!(view::AnnulusView, mat::AbstractMatrix)
-    for (tidx, tidx′) in zip(axes(mat, 1), view.indices[1])
-        for (pidx, pidx′) in zip(axes(mat, 2), view.indices[2])
-            @inbounds view[tidx′, pidx′] = mat[tidx, pidx]
-        end
-    end
+    inverse!(view, view.parent, mat)
     return view
 end
 
-function med(view::AnnulusView, angles)
-    X = flatten(view, Val(true))
-    R = X .- median(X, dims=1)
-    out = copyto!(copy(view), R)
-    return collapse(out, angles)
+
+function inverse!(view::AnnulusView, out, mat)
+    @inbounds for idx in CartesianIndices(mat)
+        tidx, pidx = Tuple(idx)
+        i = view.indices[1][tidx]
+        j = view.indices[2][pidx]
+        out[i, j] = mat[idx]
+    end
+    return out
 end
+
+inverse(view::AnnulusView, mat) = inverse!(view, fill!(similar(parent(view)), view.fill), mat)
