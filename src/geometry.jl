@@ -24,23 +24,6 @@ function AnnulusView(parent::AbstractArray{T,3};
     return AnnulusView(parent, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
 end
 
-"""
-    AnnulusView(mat::AbstractMatrix, size; inner=0, outer=last(size) / 2 + 0.5, fill=0)
-    AnnulusView(mat::AbstractMatrix, size...; inner=0, outer=last(size) / 2 + 0.5, fill=0)
-"""
-AnnulusView(mat::AbstractMatrix, sz; kwargs...) = AnnulusView(mat::AbstractMatrix, sz...; kwargs...)
-
-function AnnulusView(mat::AbstractMatrix{T},
-    sz::Vararg{<:Integer,3};
-    kwargs...) where T
-    # set up cube with correct size
-    base = fill!(similar(mat, sz), fill)
-    view = AnnulusView(base, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
-    # use copyto! to put values in
-    copyto!(view, mat)
-    return view
-end
-
 Base.parent(view::AnnulusView) = view.parent
 Base.size(view::AnnulusView) = size(parent(view))
 Base.copy(view::AnnulusView) = AnnulusView(copy(parent(view)), view.rmin, view.rmax, view.indices, view.fill)
