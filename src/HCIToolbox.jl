@@ -22,10 +22,10 @@ export derotate,
        shift_frame!,
        scale_and_stack,
        invscale_and_collapse,
-       scale_list
+       scale_list,
        # geometry
-       AnnulusView
-       inverse!
+       AnnulusView,
+       inverse!,
        inverse
 
 # Utilities for dealing with cubes like derotating and median combining

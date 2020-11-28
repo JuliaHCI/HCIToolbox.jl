@@ -37,13 +37,15 @@ function inside_annulus(rmin, rmax, center::AbstractVector, position::AbstractVe
     return rmin ≤ r ≤ rmax
 end
 
-function Base.getindex(view::AnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
-    ifelse(inside_annulus(view, idx...), convert(T, parent(view)[idx...]), view.fill)
+Base.@propagate_inbounds function Base.getindex(view::AnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
+    @boundscheck checkbounds(parent(view), idx...)
+    @inbounds ifelse(inside_annulus(view, idx...), convert(T, parent(view)[idx...]), view.fill)
 end
 
-function Base.setindex!(view::AnnulusView{T,N}, val, idx::Vararg{<:Integer,N}) where {T,N}
+Base.@propagate_inbounds function Base.setindex!(view::AnnulusView{T,N}, val, idx::Vararg{<:Integer,N}) where {T,N}
+    @boundscheck checkbounds(parent(view), idx...)
     if inside_annulus(view, idx...)
-        parent(view)[idx...] = val
+        @inbounds parent(view)[idx...] = val
     else
         view.fill
     end
