@@ -56,6 +56,8 @@ end
     end
 end
 
+annuli(view::MultiAnnulusView, asview=false) = (view(i, asview) for i in 1:length(view.indices))
+
 function Base.copyto!(view::MultiAnnulusView, mats::Vararg{<:AbstractMatrix})
     inverse!(view, view.parent, mats)
     return view
