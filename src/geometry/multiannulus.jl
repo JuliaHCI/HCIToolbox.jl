@@ -46,34 +46,24 @@ end
     end
 end
 
-@propagate_inbounds function (view::MultiAnnulusView)(idx::Int)
+@propagate_inbounds function (view::MultiAnnulusView)(idx::Int, asview=false)
     @boundscheck checkbounds(view.indices, idx)
     idxs = view.indices[idx]
-    dims = map(length, idxs)
-    output = similar(parent(view), dims...)
-    @inbounds for idx in CartesianIndices(output)
-        tidx, pidx = Tuple(idx)
-        i = idxs[1][tidx]
-        j = idxs[2][pidx]
-        output[idx] = view.parent[i, j]
+    if asview
+        @view parent(view)[idxs...]
+    else
+        parent(view)[idxs...]
     end
-    return output
 end
 
 function Base.copyto!(view::MultiAnnulusView, mats::Vararg{<:AbstractMatrix})
-
     inverse!(view, view.parent, mats)
     return view
 end
 
 function inverse!(view::MultiAnnulusView, out, mats::Vararg{<:AbstractMatrix})
     for (idxs, mat) in zip(view.indices, mats)
-        @inbounds for idx in CartesianIndices(mat)
-            tidx, pidx = Tuple(idx)
-            i = idxs[1][tidx]
-            j = idxs[2][pidx]
-            out[i, j] = mat[idx]
-        end
+        out[idxs...] = mat
     end
     return out
 end

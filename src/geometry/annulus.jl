@@ -44,16 +44,12 @@ end
     end
 end
 
-function flatten(view::AnnulusView)
-    dims = map(length, view.indices)
-    output = similar(parent(view), dims...)
-    @inbounds for idx in CartesianIndices(output)
-        tidx, pidx = Tuple(idx)
-        i = view.indices[1][tidx]
-        j = view.indices[2][pidx]
-        output[idx] = view.parent[i, j]
+function (view::AnnulusView)(asview=false)
+    if asview
+        @view parent(view)[view.indices...]
+    else
+        parent(view)[view.indices...]
     end
-    return output
 end
 
 function Base.copyto!(view::AnnulusView, mat::AbstractMatrix)
@@ -61,15 +57,12 @@ function Base.copyto!(view::AnnulusView, mat::AbstractMatrix)
     return view
 end
 
-
 function inverse!(view::AnnulusView, out, mat)
-    @inbounds for idx in CartesianIndices(mat)
-        tidx, pidx = Tuple(idx)
-        i = view.indices[1][tidx]
-        j = view.indices[2][pidx]
-        out[i, j] = mat[idx]
-    end
+    out[view.indices...] = mat
     return out
 end
 
-inverse(view::AnnulusView, mat) = inverse!(view, fill!(similar(parent(view)), view.fill), mat)
+function inverse(view::AnnulusView, mat)
+    out = fill!(similar(parent(view)), view.fill)
+    inverse!(view, out, mat)
+end
