@@ -25,6 +25,7 @@ export derotate,
        scale_list,
        # geometry
        AnnulusView,
+       MultiAnnulusView,
        inverse!,
        inverse
 
@@ -38,6 +39,6 @@ include("angles.jl")
 
 include("scaling.jl")
 
-include("geometry.jl")
+include("geometry/geometry.jl")
 
 end
