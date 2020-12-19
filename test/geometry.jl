@@ -60,8 +60,8 @@ end
     @test X_view ≈ X
 
     av = MultiAnnulusView(data, fwhm; inner=10, outer=30)
-    @test HCIToolbox.annuli(av) isa Base.Generator
-    Xs = [-X for X in HCIToolbox.annuli(av)]
+    @test eachannulus(av) isa Base.Generator
+    Xs = [-X for X in eachannulus(av)]
     sub_cube = inverse(av, Xs)
     @test sub_cube ≈ copyto!(copy(av), Xs)
 

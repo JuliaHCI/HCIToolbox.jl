@@ -26,6 +26,7 @@ export derotate,
        # geometry
        AnnulusView,
        MultiAnnulusView,
+       eachannulus,
        inverse!,
        inverse
 

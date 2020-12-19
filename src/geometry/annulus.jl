@@ -8,10 +8,9 @@ struct AnnulusView{T,N,M<:AbstractArray{T,N},IT} <: AbstractArray{T,N}
 end
 
 """
-    AnnulusView(arr::AbstractArray{T,3}; 
-        inner=0, 
-        outer=last(size(parent))/2 + 0.5, 
-        fill=0)
+    AnnulusView(cube::AbstractArray{T,3};
+                inner=0, outer=last(size(parent))/2 + 0.5,
+                fill=0)
 
 Cut out an annulus with inner radius `inner` and outer radius `outer`. Values that fall outside of this region will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
 """

@@ -7,7 +7,13 @@ struct MultiAnnulusView{T,N,M<:AbstractArray{T,N},RT,IT} <: AbstractArray{T,N}
     fill::T
 end
 
-function MultiAnnulusView(parent::AbstractArray{T,3}, radii, width; fill=zero(T)) where T
+
+"""
+    MultiAnnulusView(cube::AbstractArray{T,3} width, radii; fill=0)
+
+Create multiple annuli at each radius in `radii` with width `width`. Values that fall outside of these regions will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
+"""
+function MultiAnnulusView(parent::AbstractArray{T,3}, width, radii; fill=zero(T)) where T
     time_axis = axes(parent, 1)
     space_indices = CartesianIndices((axes(parent, 2), axes(parent, 3)))
     space_axes = map(radii) do r
@@ -19,6 +25,13 @@ function MultiAnnulusView(parent::AbstractArray{T,3}, radii, width; fill=zero(T)
     return MultiAnnulusView(parent, radii, Float64(width), indices, convert(T, fill))
 end
 
+"""
+    MultiAnnulusView(cube::AbstractArray{T,3}, width;
+                     inner=0, outer=last(size(parent))/2 + 0.5,
+                     fill=0)
+
+Create multiple annuli between `inner` and `outer` with `width` spacing. Values that fall outside of these regions will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
+"""
 function MultiAnnulusView(parent::AbstractArray{T,3}, width; inner=0, outer=(last(size(parent)) + 1) / 2, fill=zero(T)) where T
     first_r = inner + width/2
     if isfinite(outer)
@@ -29,7 +42,7 @@ function MultiAnnulusView(parent::AbstractArray{T,3}, width; inner=0, outer=(las
         final_r = max_r + 1 / sqrt(2)
     end
     radii = range(first_r, final_r, step=width)
-    return MultiAnnulusView(parent, radii, width; fill=fill)
+    return MultiAnnulusView(parent, width, radii; fill=fill)
 end
 
 Base.parent(view::MultiAnnulusView) = view.parent
@@ -52,6 +65,14 @@ end
     end
 end
 
+"""
+    (::MultiAnnulusView)(idx, asview=false)
+
+Return the `idx`th annulus as a matrix. This is equivalent to unrolling the frame and filtering out pixels outside of the `idx`th annulus. If `asview` is true, the returned values will be a view of the parent array instead of a copy.
+
+# See also
+[`eachannulus`](@ref)
+"""
 @propagate_inbounds function (view::MultiAnnulusView)(idx::Int, asview=false)
     @boundscheck checkbounds(view.indices, idx)
     idxs = view.indices[idx]
@@ -62,7 +83,10 @@ end
     end
 end
 
-annuli(view::MultiAnnulusView, asview=false) = (view(i, asview) for i in 1:length(view.indices))
+"""
+    eachannulus(::MultiAnnulusView, asview=false)
+"""
+eachannulus(view::MultiAnnulusView, asview=false) = (view(i, asview) for i in 1:length(view.indices))
 
 function Base.copyto!(view::MultiAnnulusView, mats::Vararg{<:AbstractMatrix})
     if length(mats) != length(view.indices)
