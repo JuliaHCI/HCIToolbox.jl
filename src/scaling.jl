@@ -2,7 +2,7 @@
 using PaddedViews
 
 """
-scale(cube::AbstractArray{T,3}, scales[, size])
+    scale(cube::AbstractArray{T,3}, scales[, size])
 
 Linearly stretch each frame in `cube` by the corresponding scale in `scales`. Uses bilinear interpolaiton internally. The output size can be specified or else we will choose the smallest size that contains the largest stretch.
 """
@@ -27,7 +27,7 @@ end
 scale(frame::AbstractMatrix, scale) = imresize(frame; ratio=scale)
 
 """
-scale(frame::AbstractMatrix, scale[, size])
+    scale(frame::AbstractMatrix, scale[, size])
 
 Linearly stretch `frame` with the ratio `scale`, padding symmetrically with zeros to match `out_size`. Uses bilinear interpolation internally. If `size` is specified, will return a padded view.
 """
@@ -38,7 +38,7 @@ function scale(frame::AbstractMatrix{T}, scale, out_size) where T
 end
 
 """
-invscale(cube::AbstractArray{T,3}, scales[, size])
+    invscale(cube::AbstractArray{T,3}, scales[, size])
 
 Linearly contract each frame in `cube` by the corresponding scale in `scales`. Uses bilinear interpolaiton internally. The output size can be specified or else we will choose the smallest size that contains the largest stretch.
 """
@@ -61,7 +61,7 @@ end
 
 
 """
-invscale(frame::AbstractMatrix, scale[, size])
+    invscale(frame::AbstractMatrix, scale[, size])
 
 Linearly contract `frame` with the ratio `scale`. Uses bilinear interpolation internally. If `size` is specified, will return a crop view.
 """

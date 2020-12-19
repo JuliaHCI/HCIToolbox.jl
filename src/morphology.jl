@@ -296,7 +296,7 @@ cropview(input, size::Integer; kwargs...) = cropview(input, (size, size); kwargs
 Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid uneven (odd) cropping, we may change `size`. To disable this behavior, set `force` to `true`.
 
 # See Also
-* [`crop`](@ref)
+[`crop`](@ref)
 """
 function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false, verbose=true) where T    
     frame_size = (Base.size(cube, 2), Base.size(cube, 3))
@@ -314,7 +314,7 @@ end
 Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or an integer, which will make a square crop. The indices will be relative to `center`. To avoid uneven (odd) cropping, we may change `size`. To disable this behavior, set `force` to `true`.
 
 # See Also
-* [`crop`](@ref)
+[`crop`](@ref)
 """
 function cropview(frame::AbstractMatrix, size::Tuple; center=center(frame), force=false, verbose=true)
     out_size = force ? size : check_size(Base.size(frame), size)

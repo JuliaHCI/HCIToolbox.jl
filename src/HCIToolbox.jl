@@ -12,7 +12,7 @@ export derotate,
        mask_circle,
        mask_annulus!,
        mask_annulus,
-       normalize_par_angles, 
+       normalize_par_angles,
        normalize_par_angles!,
        inject,
        inject!,
@@ -22,7 +22,13 @@ export derotate,
        shift_frame!,
        scale_and_stack,
        invscale_and_collapse,
-       scale_list
+       scale_list,
+       # geometry
+       AnnulusView,
+       MultiAnnulusView,
+       eachannulus,
+       inverse!,
+       inverse
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
@@ -33,5 +39,7 @@ include("masking.jl")
 include("angles.jl")
 
 include("scaling.jl")
+
+include("geometry/geometry.jl")
 
 end

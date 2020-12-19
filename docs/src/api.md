@@ -1,14 +1,6 @@
-# API/Reference
+# Index
 
-For now, here is a dump of all documented functions and types.
-
-## Index
+Here is a dump of all documented functions and types
 
 ```@index
-```
-
-## API/Reference
-
-```@autodocs
-Modules = [HCIToolbox, HCIToolbox.Kernels]
 ```

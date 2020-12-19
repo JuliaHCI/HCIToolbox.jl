@@ -1,8 +1,9 @@
 using HCIToolbox
-using Test
+using StableRNGs
 using Statistics
-using Random
-Random.seed!(8799)
+using Test
+
+rng = StableRNG(8799)
 
 @testset "HCIToolbox.jl" begin
     include("morphology.jl")
@@ -10,4 +11,5 @@ Random.seed!(8799)
     include("angles.jl")
     include("inject.jl")
     include("scaling.jl")
+    include("geometry.jl")
 end
