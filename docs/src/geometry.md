@@ -33,12 +33,13 @@ filtered = frame[idxs_inside_circle]
 
 This is very convenient for statistical algorithms wince we are *filtering* the data instead of just *masking* it, which greatly reduces the number of pixels. For example, the circle defined above only uses 4% of the data, so why waste time processing the rest?
 
-
-## API/Reference
+## Index
 
 ```@index
 Pages = ["geometry.md"]
 ```
+
+## API/Reference
 
 ```@docs
 AnnulusView

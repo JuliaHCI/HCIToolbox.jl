@@ -15,39 +15,6 @@ Available kernels
 - [`Kernels.Gaussian`](@ref)/[`Kernels.Normal`](@ref)
 - [`Kernels.Moffat`](@ref)
 - [`Kernels.AiryDisk`](@ref)
-
-# Examples
-
-## Fitting a PSF Model
-
-Here is a quick example fitting a model PSF to data, retrieving a [`Kernels.PSFKernel`](@ref). This example uses [LossFunctions.jl](https://github.com/JuliaML/LossFunctions.jl) and [Optim.jl](https://github.com/JuliaNLSolvers/Optim.jl), so please see their documentation for further questions. There are many ways to fit a model, so the important things to recognize are how [`construct`](@ref) and the chosen `PSFModel` integrate into a standard-looking MLE optimization.
-
-```jldoctest; output=false
-# Create noisy Airy disk (slightly off-center) with A=24 and FWHM=10
-img = construct(Kernels.AiryDisk(10), (101, 101),
-                A=24, r=0.2, theta=-10) .+ randn(101, 101)
-
-# Set up optimization problem: linear regression
-using LossFunctions, Optim
-loss(y_pred) = value(L2DistLoss(), img, y_pred, AggMode.Sum()) # least-squares loss
-# if image is pre-centered, don't _need_ to fit position
-# use logarithmic transform to make sure fhwm and A are positive
-function objective(X)
-    log_fwhm, log_A, x, y = X
-    img_pred = construct(Kernels.AiryDisk(exp(log_fwhm)), size(img);
-                         A=exp(log_A), x=x, y=y)
-    return loss(img_pred)
-end
-# optimize using NelderMead
-X0 = Float64[0, 0, 51, 51]
-res = optimize(objective, X0, NelderMead())
-# OR leverage autodiff and higher order methods like LBFGS and Newton's method
-res_ad = optimize(objective, X0, Newton(); autodiff=:forward)
-
-# Set up the best fitting model
-fhwm_mle, psf_A_mle = exp.(Optim.minimizer(res_ad)[1:2])
-psf_model = Kernels.AiryDisk(fhwm_mle)
-```
 """
 module Kernels
 
