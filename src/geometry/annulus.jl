@@ -72,7 +72,7 @@ end
 """
     copyto!(::AnnulusView, mat::AbstractMatrix)
 
-Copy the pixels from `mat` into the pixels in the annulus. `mat` should have the same size as the output from [`AnnulusView`](@ref)
+Copy the pixels from `mat` into the pixels in the annulus. `mat` should have the same size as the matrix output from [`AnnulusView`](@ref)
 
 # Examples
 ```jldoctest
@@ -105,7 +105,7 @@ end
 """
     inverse(::AnnulusView, mat::AbstractMatrix)
 
-Generate a cube matching the view with the pixels from `mat`. `mat` should have the same size as the output from [`AnnulusView`](@ref)
+Generate a cube similar to the view with the pixels from `mat`. `mat` should have the same size as the matrix output from [`AnnulusView`](@ref)
 
 # Examples
 ```jldoctest

@@ -9,11 +9,11 @@ For example, to create a geometry that is a concentric circle with radius `r`, w
 frame = ones(101, 101)
 idxs = CartesianIndices(frame)
 radius = 10
-center = [51, 51]
+center = (51, 51)
+# only include indices that are within circle
 idxs_inside_circle = filter(idxs) do idx
     translated = idx.I .- center
     dist = sqrt(sum(abs2, translated))
-    # only include indices that are within circle
     return dist ≤ radius
 end
 ```
@@ -43,6 +43,7 @@ Pages = ["geometry.md"]
 ```@docs
 AnnulusView
 MultiAnnulusView
+eachannulus
 inverse
 inverse!
 copyto!
