@@ -24,6 +24,20 @@ expand
 flatten
 shift_frame
 shift_frame!
+```
+
+### Signal Injection
+
+```@docs
+inject
+inject!
+construct
+```
+
+
+### SDI
+
+```@docs
 invscale
 invscale_and_collapse
 scale
