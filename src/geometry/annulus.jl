@@ -8,7 +8,10 @@ struct AnnulusView{T,N,M<:AbstractArray{T,N},IT} <: AbstractArray{T,N}
 end
 
 """
-    AnnulusView(arr::AbstractArray{T,3}; inner=0, outer=last(size(parent)) / 2 + 0.5, fill=0)
+    AnnulusView(arr::AbstractArray{T,3}; 
+        inner=0, 
+        outer=last(size(parent))/2 + 0.5, 
+        fill=0)
 
 Cut out an annulus with inner radius `inner` and outer radius `outer`. Values that fall outside of this region will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
 """
@@ -44,6 +47,21 @@ end
     end
 end
 
+"""
+    (::AnnulusView)(asview=false)
+
+Return the pixels that fall within the annulus as a matrix. This matrix is equivalent to unrolling each frame and then spatially filtering the pixels outside the annulus. If `asview` is true, the returned values will be a view of the parent array instead of a copy.
+
+# Examples
+```jldoctest
+julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+
+julia> X = ann();
+
+julia> size(X)
+(10, 1188)
+```
+"""
 function (view::AnnulusView)(asview=false)
     if asview
         @view parent(view)[view.indices...]
@@ -52,16 +70,56 @@ function (view::AnnulusView)(asview=false)
     end
 end
 
+"""
+    copyto!(::AnnulusView, mat::AbstractMatrix)
+
+Copy the pixels from `mat` into the pixels in the annulus. `mat` should have the same size as the output from [`AnnulusView`](@ref)
+
+# Examples
+```jldoctest
+julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+
+julia> X = ann();
+
+julia> new_ann = copyto!(ann, -X);
+
+julia> new_ann() ≈ -X
+true
+```
+"""
 function Base.copyto!(view::AnnulusView, mat::AbstractMatrix)
     inverse!(view, view.parent, mat)
     return view
 end
 
+"""
+    inverse!(::AnnulusView, out, mat)
+
+In-place version of [`inverse`](@ref) that fills `out` in-place.
+"""
 function inverse!(view::AnnulusView, out, mat)
     out[view.indices...] = mat
     return out
 end
 
+
+"""
+    inverse(::AnnulusView, mat::AbstractMatrix)
+
+Generate a cube matching the view with the pixels from `mat`. `mat` should have the same size as the output from [`AnnulusView`](@ref)
+
+# Examples
+```jldoctest
+julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+
+julia> X = ann();
+
+julia> out = inverse(ann, -X);
+
+julia> out ≈ -ann
+true
+```
+"""
 function inverse(view::AnnulusView, mat)
     out = fill!(similar(parent(view)), view.fill)
     inverse!(view, out, mat)
