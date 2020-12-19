@@ -61,7 +61,8 @@ Note that the input type must be compatible with the fill value's type.
 mask_annulus(arr::AbstractMatrix, npix_in, npix_out; fill = 0) = mask_annulus!(deepcopy(arr), npix_in, npix_out, fill = fill)
 
 """
-    get_annulus_segments(data, inner_radius, width, [nsegments]; theta_init=0, scale_factor=1, mode=:index)
+    get_annulus_segments(data, inner_radius, width, [nsegments];
+                         theta_init=0, scale_factor=1, mode=:index)
 
 Returns indices or values in segments of a centered annulus.
 

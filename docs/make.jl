@@ -23,9 +23,11 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "Processing" => "processing.md",
+        "Spectral Processing" => "sdi.md",
         "Geometries" => "geometry.md",
+        "Signal Injection" => "inject.md",
         "Utilites" => "utils.md",
-        "API/Reference" => "api.md"
+        "Index" => "api.md"
     ]
 )
 

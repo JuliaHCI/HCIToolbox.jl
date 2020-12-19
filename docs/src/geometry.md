@@ -5,7 +5,6 @@ A common way of analyzing HCI data is to look at specific spatial extents, such 
 For example, to create a geometry that is a concentric circle with radius `r`, we could filter a single frame like this
 
 ```julia
-# example
 frame = ones(101, 101)
 idxs = CartesianIndices(frame)
 radius = 10
