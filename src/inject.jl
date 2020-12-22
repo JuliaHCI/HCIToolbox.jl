@@ -6,7 +6,107 @@ using ImageTransformations
 using Interpolations
 using StaticArrays
 
+using PSFModels: PSFModel
+
 export normalize_psf, normalize_psf!
+
+
+struct CubeGenerator{CT<:AbstractArray,PT<:Union{AbstractExtrapolation,PSFModel},AT<:AbstractVector}
+    cube::CT
+    angles::AT
+    psf::PT
+end
+
+function CubeGenerator(cube, angles, psf; kwargs...)
+    psf′ = prep_psf(psf; kwargs...)
+    return CubeGenerator(cube, angles, psf′)
+end
+
+function prep_psf(psf::AbstractMatrix{T}; degree=Linear(), fill=zero(T)) where T
+    return ImageTransformations.box_extrapolation(psf, degree, fill)
+end
+prep_psf(psf::PSFModel; kwargs...) = psf
+
+(gen::CubeGenerator)(pos; kwargs...) = gen(eltype(gen.cube), pos; kwargs...)
+
+function (gen::CubeGenerator)(T::Type, pos; kwargs...)
+    base = similar(gen.cube, T)
+    gen(base, pos; kwargs...)
+end
+
+function (gen::CubeGenerator)(base::AbstractArray{T,3}, pos; A=one(T)) where T
+    ctr = reverse(center(base)[2:3])
+    xy = parse_position(pos, ctr)
+    Threads.@threads for tidx in axes(base, 1)
+        # position angle is 90° out of phase with parallactic angle
+        angle = 90 - gen.angles[tidx]
+        ϕ = RotMatrix{2}(deg2rad(angle))
+        # reverse location to get in indices [y, x]
+        location = recenter(ϕ, ctr)(xy) |> reverse
+
+        frame = @view base[tidx, :, :]
+        tform = Translation(center(gen.psf) - location)
+        tform = ImageTransformations.try_static(tform, frame)
+        for idx in CartesianIndices(frame)
+            pidx = tform(SVector(idx.I))
+            frame[idx] = A * gen.psf(Tuple(pidx)...)
+        end
+    end
+    return base
+end
+
+function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
+    ctr = reverse(center(gen.cube)[2:3])
+    xy = parse_position(pos, ctr)
+    Threads.@threads for tidx in axes(base, 1)
+        # position angle is 90° out of phase with parallactic angle
+        angle = 90 - gen.angles[tidx]
+        ϕ = RotMatrix{2}(deg2rad(angle))
+        # reverse location to get in indices [y, x]
+        location = recenter(ϕ, ctr)(xy) |> reverse
+
+        tform = Translation(center(gen.psf) - location)
+        for (pidx, pidx′) in zip(axes(base, 2), CartesianIndices(size(gen.cube)[2:3]))
+            I = tform(SVector(pidx′.I))
+            base[tidx, pidx] = A * gen.psf(Tuple(I)...)
+        end
+    end
+    return base
+end
+
+function (gen::CubeGenerator{<:AnnulusView})(base::AbstractArray{T,3}, pos; A=one(T)) where T
+    dims = map(length, gen.cube.indices)
+    mat = similar(gen.cube, T, dims...)
+    gen(T, mat, pos; A=A)
+    return inverse!(gen.cube, base, mat)
+end
+
+
+function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
+    ctr = reverse(center(gen.cube)[2:3])
+    xy = parse_position(pos, ctr)
+    Threads.@threads for tidx in axes(base, 1)
+        # get tidx for view
+        tidx′ = gen.cube.indices[1][tidx]
+        # position angle is 90° out of phase with parallactic angle
+        angle = 90 - gen.angles[tidx′]
+        ϕ = RotMatrix{2}(deg2rad(angle))
+        # reverse location to get in indices [y, x]
+        location = recenter(ϕ, ctr)(xy) |> reverse
+        tform = Translation(center(gen.psf) - location)
+        for (pidx, pidx′) in zip(axes(base, 2), gen.cube.indices[2])
+            I = tform(SVector(pidx′.I))
+            base[tidx, pidx] = A * gen.psf(Tuple(I)...)
+        end
+    end
+
+    return base
+end
+
+
+parse_position(pos::Tuple, ctr) = SVector(pos)
+parse_position(pos::Polar, ctr) = convert(SVector, pos) |> Translation(ctr)
+
 
 function _frame_center(axes)
     map(axes) do axis
