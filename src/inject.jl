@@ -139,6 +139,7 @@ end
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
     Threads.@threads for tidx in axes(base, 1)
+        tidx′ = gen.cube.indices[1][tidx]
         location = parse_position(pos, ctr, gen.angles[tidx′])
         tform = Translation(center(gen.psf) - location)
         for (pidx, pidx′) in zip(axes(base, 2), gen.cube.indices[2])
