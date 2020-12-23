@@ -259,7 +259,7 @@ end
 
 function inject!(cube::AbstractArray{T,3}, angles::AbstractVector, kernel, pos; A = one(T), kwargs...) where T
     gen = CubeGenerator(cube, angles, kernel; kwargs...)
-    return inject!(cube, gen, pos; kwargs...)
+    return inject!(cube, gen, pos; A=A)
 end
 
 function inject!(cube::AbstractArray{T,3}, gen::CubeGenerator, pos; A=one(T)) where T
