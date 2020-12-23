@@ -36,6 +36,7 @@ julia> gen = CubeGenerator(cube, angles, psf); # using empirical PSF
 julia> using PSFModels: Gaussian
 
 julia> gen2 = CubeGenerator(cube, angles, Gaussian(4.7)); # using PSFModel
+```
 """
 function CubeGenerator(cube, angles, psf; kwargs...)
     psf′ = prep_psf(psf; kwargs...)
@@ -71,7 +72,7 @@ true
 
 julia> flat_s = gen(zero(flatten(cube)), (51, 51));
 
-julia> flat_s == flatten(s)
+julia> flat_s ≈ flatten(s)
 true
 
 julia> gen(Polar(10, deg2rad(45)); A=10); # inject using Polar coords
@@ -108,6 +109,7 @@ end
 function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
     xy = parse_position(pos, ctr)
+    ny, nx = size(gen.cube)[2:3]
     Threads.@threads for tidx in axes(base, 1)
         # position angle is 90° out of phase with parallactic angle
         angle = 90 - gen.angles[tidx]
@@ -116,8 +118,10 @@ function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
         location = recenter(ϕ, ctr)(xy) |> reverse
 
         tform = Translation(center(gen.psf) - location)
-        for (pidx, pidx′) in zip(axes(base, 2), CartesianIndices(size(gen.cube)[2:3]))
-            I = tform(SVector(pidx′.I))
+        for pidx in axes(base, 2)
+            j = (pidx - 1) % ny + 1
+            k = (pidx - 1) ÷ nx + 1
+            I = tform(SVector(j, k))
             base[tidx, pidx] += A * gen.psf(Tuple(I)...)
         end
     end
