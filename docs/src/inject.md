@@ -13,9 +13,5 @@ Pages = ["inject.md"]
 ```@docs
 inject
 inject!
-construct
-Kernels
-Kernels.Gaussian
-Kernels.AiryDisk
-Kernels.Moffat
+CubeGenerator
 ```

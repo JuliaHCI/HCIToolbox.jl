@@ -34,6 +34,7 @@ export derotate,
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
+include("geometry/geometry.jl")
 include("inject.jl")
 
 # Utilities for mask design
@@ -42,6 +43,5 @@ include("angles.jl")
 
 include("scaling.jl")
 
-include("geometry/geometry.jl")
 
 end
