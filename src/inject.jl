@@ -39,6 +39,9 @@ julia> gen2 = CubeGenerator(cube, angles, Gaussian(4.7)); # using PSFModel
 ```
 """
 function CubeGenerator(cube, angles, psf; kwargs...)
+    if size(cube, 1) != length(angles)
+        error("Number of frames in cube does not match number of parallactic angles")
+    end
     psf′ = prep_psf(psf; kwargs...)
     return CubeGenerator(cube, angles, psf′)
 end
@@ -87,20 +90,19 @@ end
 
 function (gen::CubeGenerator)(base::AbstractArray{T,3}, pos; A=one(T)) where T
     ctr = reverse(center(base)[2:3])
-    xy = parse_position(pos, ctr)
     Threads.@threads for tidx in axes(base, 1)
-        # position angle is 90° out of phase with parallactic angle
-        angle = 90 - gen.angles[tidx]
-        ϕ = RotMatrix{2}(deg2rad(angle))
-        # reverse location to get in indices [y, x]
-        location = recenter(ϕ, ctr)(xy) |> reverse
+        location = parse_position(pos, ctr, gen.angles[tidx])
 
         frame = @view base[tidx, :, :]
         tform = Translation(center(gen.psf) - location)
         tform = ImageTransformations.try_static(tform, frame)
         for idx in CartesianIndices(frame)
             pidx = tform(SVector(idx.I))
-            frame[idx] += A * gen.psf(Tuple(pidx)...)
+            if gen.psf isa PSFModel
+                frame[idx] += A * gen.psf(Tuple(reverse(pidx))...)
+            else
+                frame[idx] += A * gen.psf(Tuple(pidx)...)
+            end
         end
     end
     return base
@@ -108,21 +110,19 @@ end
 
 function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
-    xy = parse_position(pos, ctr)
     ny, nx = size(gen.cube)[2:3]
     Threads.@threads for tidx in axes(base, 1)
-        # position angle is 90° out of phase with parallactic angle
-        angle = 90 - gen.angles[tidx]
-        ϕ = RotMatrix{2}(deg2rad(angle))
-        # reverse location to get in indices [y, x]
-        location = recenter(ϕ, ctr)(xy) |> reverse
-
+        location = parse_position(pos, ctr, gen.angles[tidx])
         tform = Translation(center(gen.psf) - location)
         for pidx in axes(base, 2)
             j = (pidx - 1) % ny + 1
             k = (pidx - 1) ÷ nx + 1
             I = tform(SVector(j, k))
-            base[tidx, pidx] += A * gen.psf(Tuple(I)...)
+            if gen.psf isa PSFModel
+                base[tidx, pidx] += A * gen.psf(Tuple(reverse(I))...)
+            else
+                base[tidx, pidx] += A * gen.psf(Tuple(I)...)
+            end
         end
     end
     return base
@@ -138,26 +138,43 @@ end
 
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
-    xy = parse_position(pos, ctr)
     Threads.@threads for tidx in axes(base, 1)
-        # get tidx for view
-        tidx′ = gen.cube.indices[1][tidx]
-        # position angle is 90° out of phase with parallactic angle
-        angle = 90 - gen.angles[tidx′]
-        ϕ = RotMatrix{2}(deg2rad(angle))
-        # reverse location to get in indices [y, x]
-        location = recenter(ϕ, ctr)(xy) |> reverse
+        location = parse_position(pos, ctr, gen.angles[tidx′])
         tform = Translation(center(gen.psf) - location)
         for (pidx, pidx′) in zip(axes(base, 2), gen.cube.indices[2])
             I = tform(SVector(pidx′.I))
-            base[tidx, pidx] += A * gen.psf(Tuple(I)...)
+            if gen.psf isa PSFModel
+                base[tidx, pidx] += A * gen.psf(Tuple(reverse(I))...)
+            else
+                base[tidx, pidx] += A * gen.psf(Tuple(I)...)
+            end
         end
     end
     return base
 end
 
-parse_position(pos::Tuple, ctr) = SVector(pos)
-parse_position(pos::Polar, ctr) = convert(SVector, pos) |> Translation(ctr)
+"""
+    HCIToolbox.parse_position(pos::Tuple, ctr, pa=0)
+
+Parse the position as the cartesian `(x, y)` pixel coordinates. If a parallactic angle is given the position will be rotated `pa` degrees clockwise.
+"""
+function parse_position(pos::Tuple, ctr, pa=0)
+    xy = SVector(pos)
+    ϕ = RotMatrix{2}(-deg2rad(pa))
+    return recenter(ϕ, ctr)(xy) |> reverse
+end
+
+"""
+    HCIToolbox.parse_position(pos::Polar, ctr, pa=0)
+
+Parse the position as the polar `(r, θ)` pixel coordinates centered at `ctr`. If a parallactic angle is given the position will be rotated `pa` degrees clockwise.
+"""
+function parse_position(pos::Polar, ctr, pa=0)
+    new_pos = Polar(pos.r, pos.θ - deg2rad(pa))
+    Δxy = convert(SVector, new_pos)
+    # recenter and switch to index layout
+    return  Δxy |> Translation(ctr) |> reverse
+end
 
 ################################
 
@@ -203,8 +220,7 @@ end
 
 function inject!(frame::AbstractMatrix{T}, psf::PSFType, pos; A=one(T)) where T
     ctr = reverse(center(frame))
-    xy = parse_position(pos, ctr)
-    location = reverse(xy)
+    location = parse_position(pos, ctr)
     tform = Translation(center(psf) - location)
     tform = ImageTransformations.try_static(tform, frame)
     for idx in CartesianIndices(frame)
@@ -237,7 +253,7 @@ In-place version of [`inject`](@ref) which modifies `cube`.
 """
 function inject!(cube::AbstractArray{T,3}, kernel, pos; kwargs...) where T
     # All zeros position angles is actually 90° parallactic angle
-    angles = Fill(90, size(cube, 1))
+    angles = Zeros(size(cube, 1))
     return inject!(cube, angles, kernel, pos; kwargs...)
 end
 
