@@ -46,6 +46,9 @@ end
     c3 = gen(Polar(0, 0))
     @test c ≈ c2 ≈ c3
     @test eltype(c2) === Float32
+
+    q = gen(ones(size(cube)), (11, 11))
+    @test all(q .≈ c .+ 1)
 end
 
 @testset "inject av - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]

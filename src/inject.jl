@@ -129,11 +129,17 @@ function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
 end
 
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractArray{T,3}, pos; A=one(T)) where T
-    mat = gen.cube()
+    mat = @view base[gen.cube.indices...]
+    gen(mat, pos; A=A)
+    return base
+end
+
+
+function (gen::CubeGenerator{<:AnnulusView})(base::AnnulusView{T,3}, pos; A=one(T)) where T
+    mat = base()
     gen(mat, pos; A=A)
     return inverse!(gen.cube, base, mat)
 end
-
 
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
