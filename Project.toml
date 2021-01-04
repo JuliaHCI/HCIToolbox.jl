@@ -1,7 +1,7 @@
 name = "HCIToolbox"
 uuid = "b6cd55e5-4d02-4e12-b82c-005f67e784bf"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.5.2"
+version = "0.5.3"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"

@@ -1,7 +1,7 @@
 using PSFModels: Gaussian, Moffat, AiryDisk
 
 # TODO - figure out why using `ones(1, 1)` fails only in test
-@testset "image injection - $kernel" for kernel in [[0 0 0; 0 1 0; 0 0 0],
+@testset "image injection - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0],
                                           Gaussian(1e-2),
                                           Moffat(1e-3),
                                           AiryDisk(1e-2)]
@@ -15,7 +15,7 @@ using PSFModels: Gaussian, Moffat, AiryDisk
     @test inject(cube, 90ones(10), kernel, (2, 2))[:, 2, 2] ≈ ones(10)
 end
 
-@testset "cube generator - $kernel" for kernel in [[0 0 0; 0 1 0; 0 0 0],
+@testset "cube generator - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0],
                                           Gaussian(1e-2),
                                           Moffat(1e-3),
                                           AiryDisk(1e-2)]
@@ -34,4 +34,40 @@ end
 
     flat = gen(zero(flatten(cube)), (2, 2))
     @test flat ≈ flatten(c)
+end
+
+@testset "cube generator AnnulusView - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]
+    cube = AnnulusView(zeros(10, 21, 21))
+    angles = 90ones(10)
+    gen = CubeGenerator(cube, angles, kernel)
+
+    c = gen((11, 11))
+    c2 = gen(Float32, (11, 11))
+    c3 = gen(Polar(0, 0))
+    @test c ≈ c2 ≈ c3
+    @test eltype(c2) === Float32
+end
+
+@testset "inject av - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]
+    cube = AnnulusView(zeros(10, 21, 21))
+    angles = 90ones(10)
+
+    c = inject(cube, angles, kernel, (11, 11))
+    c2 = inject(cube, angles, kernel, Polar(0, 0))
+    @test c ≈ c2
+    @test c isa AnnulusView && c2 isa AnnulusView
+
+    gen = CubeGenerator(cube, angles, kernel)
+    flat = gen(cube(), (11, 11))
+    @test flat ≈ c()
+end
+
+@testset "inject mav - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]
+    cube = MultiAnnulusView(zeros(10, 21, 21), 2)
+    angles = 90ones(10)
+
+    c = inject(cube, angles, kernel, (11, 11))
+    c2 = inject(cube, angles, kernel, Polar(0, 0))
+    @test c ≈ c2
+    @test c isa MultiAnnulusView && c2 isa MultiAnnulusView
 end
