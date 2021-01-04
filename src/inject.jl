@@ -134,13 +134,6 @@ function (gen::CubeGenerator{<:AnnulusView})(base::AbstractArray{T,3}, pos; A=on
     return base
 end
 
-
-function (gen::CubeGenerator{<:AnnulusView})(base::AnnulusView{T,3}, pos; A=one(T)) where T
-    mat = base()
-    gen(mat, pos; A=A)
-    return inverse!(gen.cube, base, mat)
-end
-
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
     ctr = reverse(center(gen.cube)[2:3])
     Threads.@threads for tidx in axes(base, 1)
