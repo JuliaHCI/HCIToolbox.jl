@@ -108,7 +108,7 @@ end
 """
     scale_list(wavelengths)
 
-Returns a list of scaling factors for aligning SDI tensors from a list of wavelengths. Note that you could equivalently pass in a spectral template that has already been evaluated on the same wavelength grid as the data.
+Returns a list of scaling factors for aligning SDI tensors from a list of wavelengths.
 """
 scale_list(wavelengths) = maximum(wavelengths) ./ wavelengths
 
