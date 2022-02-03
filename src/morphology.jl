@@ -44,7 +44,7 @@ julia> collapse(X, [0, 90], fill=NaN)
 # See Also
 [`collapse!`](@ref)
 """
-collapse(cube::AbstractArray{T,3}; method=median) where {T} = method(cube, dims = 1)[1, :, :]
+collapse(cube::AbstractArray{T,3}; method=median) where {T} = method(cube, dims = 3)[:, :, 1]
 
 collapse(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, kwargs...) where T =
     method === :deweight ? _collapse_deweighted(cube, angles; kwargs...) :
@@ -64,22 +64,22 @@ collapse!(cube::AbstractArray{T,3}, angles::AbstractVector; method=:deweight, kw
     _collapse_deweighted!(deepcopy(cube), angles; kwargs...)
 
 function _collapse_deweighted!(cube::AbstractArray{T,3}, angles::AbstractVector; fill=zero(T), kwargs...) where T
-    varframe = var(cube, dims=1)[1, :, :]
+    varframe = var(cube, dims=3)[:, :, 1]
 
     # have to check if no variance otherwise the returns will be NaN
-    all(p -> p ≈ 0, varframe) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=1)[1, :, :]
+    all(p -> p ≈ 0, varframe) && return mean(derotate!(cube, angles; fill=fill, kwargs...); dims=3)[:, :, 1]
     # create a cube from the variance of each pixel across time
     varcube = similar(cube)
     # derotate both cubes
-    Threads.@threads for idx in axes(varcube, 1)
-        cube[idx, :, :] .= derotate(view(cube, idx, :, :), angles[idx]; fill=fill, kwargs...)
-        varcube[idx, :, :] .= derotate(varframe, angles[idx]; fill=fill, kwargs...)
+    Threads.@threads for idx in axes(varcube, 3)
+        cube[:, :, idx] .= derotate(view(cube, :, :, idx), angles[idx]; fill=fill, kwargs...)
+        varcube[:, :, idx] .= derotate(varframe, angles[idx]; fill=fill, kwargs...)
     end
 
     # calculate weighted sum and replace NaNs with our fill value
-    out = sum(cube ./ varcube, dims=1) ./ sum(inv.(varcube), dims=1)
+    out = sum(cube ./ varcube, dims=3) ./ sum(inv.(varcube), dims=3)
     @. out[isnan(out)] = fill
-    return out[1, :, :]
+    return out[:, :, 1]
 end
 
 """
@@ -101,7 +101,7 @@ julia> flatten(X)
 # See Also
 [`expand`](@ref)
 """
-flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1), size(cube, 2) * size(cube, 3))
+flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 2) * size(cube, 3), size(cube, 1))
 flatten(mat::AbstractMatrix) = mat
 
 """
@@ -129,10 +129,10 @@ julia> expand(X)[1, :, :]
 [`flatten`](@ref)
 """
 function expand(mat::AbstractMatrix)
-    n, z = size(mat)
+    z, n = size(mat)
     x = sqrt(z)
-    isinteger(x) || error("Array of size $((n, x, x)) is not compatible with input matrix of size $(size(mat)).")
-    return reshape(mat, n, Int(x), Int(x))
+    isinteger(x) || error("Array of size $((x, x, n)) is not compatible with input matrix of size $(size(mat)).")
+    return reshape(mat, Int(x), Int(x), n)
 end
 expand(cube::AbstractArray{T,3}) where {T} = cube
 
@@ -149,9 +149,9 @@ function derotate!(cube::AbstractArray{T,3},
                    angles::AbstractVector;
                    fill=zero(T),
                    degree=Linear()) where T
-    Threads.@threads for i in axes(cube, 1)
-        frame = @view cube[i, :, :]
-        frame .= imrotate(frame, deg2rad(angles[i]), axes(frame), degree, fill)
+    Threads.@threads for i in axes(cube, 3)
+        frame = @view cube[:, :, i]
+        frame .= imrotate(frame, -deg2rad(angles[i]), axes(frame), degree, fill)
     end
     return cube
 end
@@ -165,7 +165,7 @@ function derotate(frame::AbstractMatrix{T},
                    angle;
                    fill=zero(T),
                    degree=Linear()) where T
-    return imrotate(frame, deg2rad(angle), axes(frame), degree, fill)
+    return imrotate(frame, -deg2rad(angle), axes(frame), degree, fill)
 end
 
 
@@ -225,7 +225,7 @@ julia> shift_frame(ans, (-1, 1), fill=NaN)
 ```
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
-    tform = Translation(-dy, -dx)
+    tform = Translation(-dx, -dy)
     return warp(frame, tform, axes(frame), fill)
 end
 shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(frame, dpos...; fill=fill)
@@ -249,9 +249,9 @@ shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame
 In-place version of [`shift_frame`](@ref) which modifies `cube`.
 """
 function shift_frame!(cube::AbstractArray{T, 3}, dx::Number, dy::Number; fill=zero(T)) where T
-    @inbounds for idx in axes(cube, 1)
-        frame = @view cube[idx, :, :]
-        tform = Translation(-dy, -dx)
+    @inbounds for idx in axes(cube, 3)
+        frame = @view cube[:, :, idx]
+        tform = Translation(-dx, -dy)
         frame .= warp(frame, tform, axes(frame), fill)
     end
     return cube
@@ -260,19 +260,19 @@ end
 shift_frame!(cube::AbstractArray{T, 3}, dpos::Tuple; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
 
 function shift_frame!(cube::AbstractArray{T, 3}, dx::AbstractVector, dy::AbstractVector; fill=zero(T)) where T
-    @inbounds for idx in axes(cube, 1)
-        frame = @view cube[idx, :, :]
-        tform = Translation(-dy[idx], -dx[idx])
+    @inbounds for idx in axes(cube, 3)
+        frame = @view cube[:, :, idx]
+        tform = Translation(-dx[idx], -dy[idx])
         frame .= warp(frame, tform, axes(frame), fill)
     end
     return cube
 end
 
 function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Tuple}; fill=zero(T)) where T
-    @inbounds for idx in axes(cube, 1)
-        frame = @view cube[idx, :, :]
-        dy, dx = dpos[idx]
-        tform = Translation(-dy, -dx)
+    @inbounds for idx in axes(cube, 3)
+        frame = @view cube[:, :, idx]
+        dx, dy = dpos[idx]
+        tform = Translation(-dx, -dy)
         frame .= warp(frame, tform, axes(frame), fill)
     end
     return cube
@@ -299,13 +299,13 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 [`crop`](@ref)
 """
 function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false, verbose=true) where T    
-    frame_size = (Base.size(cube, 2), Base.size(cube, 3))
+    frame_size = (Base.size(cube, 1), Base.size(cube, 2))
     out_size = force ? size : check_size(frame_size, size)
     out_size != size && verbose && @info "adjusted size to $out_size to avoid uneven (odd) cropping"
     wing = @. (out_size - 1) / 2
     _init = @. floor(Int, center - wing)
     _end = @. floor(Int, center + wing)
-    return view(cube, :, _init[1]:_end[1], _init[2]:_end[2])
+    return view(cube, _init[1]:_end[1], _init[2]:_end[2], :)
 end
 
 """
