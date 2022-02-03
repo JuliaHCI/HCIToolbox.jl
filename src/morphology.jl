@@ -19,7 +19,7 @@ If `method` is `:deweight`, the method of _Bottom et al. 2017_ will be used in w
 
 # Examples
 ```jldoctest
-julia> X = ones(2, 3, 3);
+julia> X = ones(3, 3, 2);
 
 julia> collapse(X)
 3×3 Array{Float64,2}:
@@ -85,11 +85,11 @@ end
 """
     flatten(cube)
 
-Given a cube of size `(n, x, y)` returns a matrix with size `(n, x * y)` where each row is a flattened image from the cube.
+Given a cube of size `(x, y, n)` returns a matrix with size `(x * y, n)` where each row is a flattened image from the cube.
 
 # Examples
 ```jldoctest
-julia> X = ones(3, 2, 2);
+julia> X = ones(2, 2, 3);
 
 julia> flatten(X)
 3×4 Array{Float64,2}:
@@ -107,19 +107,19 @@ flatten(mat::AbstractMatrix) = mat
 """
     expand(matrix)
 
-Given a matrix of size `(n, z)`, returns a cube of size `(n, x, x)` where `x=√z`.
+Given a matrix of size `(z, n)`, returns a cube of size `(x, x, n)` where `x=√z`.
 
 Will throw an error if `z` is not a perfect square.
 
 # Examples
 ```jldoctest
-julia> X = ones(3, 4)
+julia> X = ones(4, 3)
 3×4 Array{Float64,2}:
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
 
-julia> expand(X)[1, :, :]
+julia> expand(X)[:, :, 1]
 2×2 Array{Float64,2}:
  1.0  1.0
  1.0  1.0
@@ -178,15 +178,15 @@ This will rotate frame `i` counter-clockwise. Any values outside the original ax
 
 # Examples
 ```jldoctest
-julia> X = zeros(1, 3, 3); X[1, 1, 2] = 1;
+julia> X = zeros(3, 3, 1); X[2, 1, 1] = 1;
 
-julia> X[1, :, :]
+julia> X[:, :, 1]
 3×3 Array{Float64,2}:
  0.0  1.0  0.0
  0.0  0.0  0.0
  0.0  0.0  0.0
 
-julia> derotate(X, [90])[1, :, :]
+julia> derotate(X, [90])[:, :, 1]
 3×3 Array{Float64,2}:
  0.0  3.22941e-16  0.0
  0.0  0.0          0.999991

@@ -14,30 +14,30 @@ end
 Create multiple annuli at each radius in `radii` with width `width`. Values that fall outside of these regions will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
 """
 function MultiAnnulusView(parent::AbstractArray{T,3}, width, radii; fill=zero(T)) where T
-    time_axis = axes(parent, 1)
-    space_indices = CartesianIndices((axes(parent, 2), axes(parent, 3)))
+    time_axis = axes(parent, 3)
+    space_indices = CartesianIndices((axes(parent, 1), axes(parent, 2)))
     space_axes = map(radii) do r
         inner = r - width / 2
         outer = r + width / 2
-        filter(idx -> inside_annulus(inner, outer, center(parent)[2:3], idx), space_indices)
+        filter(idx -> inside_annulus(inner, outer, center(parent)[1:2], idx), space_indices)
     end
-    indices = [(time_axis, space_axis) for space_axis in space_axes]
+    indices = [(space_axis, time_axis) for space_axis in space_axes]
     return MultiAnnulusView(parent, radii, Float64(width), indices, convert(T, fill))
 end
 
 """
     MultiAnnulusView(cube::AbstractArray{T,3}, width;
-                     inner=0, outer=last(size(parent))/2 + 0.5,
+                     inner=0, outer=first(size(parent))/2 + 0.5,
                      fill=0)
 
 Create multiple annuli between `inner` and `outer` with `width` spacing. Values that fall outside of these regions will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
 """
-function MultiAnnulusView(parent::AbstractArray{T,3}, width; inner=0, outer=(last(size(parent)) + 1) / 2, fill=zero(T)) where T
+function MultiAnnulusView(parent::AbstractArray{T,3}, width; inner=0, outer=(first(size(parent)) + 1) / 2, fill=zero(T)) where T
     first_r = inner + width/2
     if isfinite(outer)
         final_r = outer - width/2
     else
-        max_length = (last(size(parent)) + 1) / 2
+        max_length = (first(size(parent)) + 1) / 2
         max_r = sqrt(2 * max_length^2)
         final_r = max_r + 1 / sqrt(2)
     end
@@ -51,13 +51,13 @@ Base.copy(view::MultiAnnulusView) = MultiAnnulusView(copy(parent(view)), view.ra
 
 @propagate_inbounds function Base.getindex(view::MultiAnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
     @boundscheck checkbounds(parent(view), idx...)
-    inside = any(r -> inside_annulus(r-view.width/2, r+view.width/2, center(parent(view))[2:3], idx...), view.radii)
+    inside = any(r -> inside_annulus(r-view.width/2, r+view.width/2, center(parent(view))[1:2], idx...), view.radii)
     ifelse(inside, convert(T, parent(view)[idx...]), view.fill)
 end
 
 @propagate_inbounds function Base.setindex!(view::MultiAnnulusView{T,N}, val, idx::Vararg{<:Integer,N}) where {T,N}
     @boundscheck checkbounds(parent(view), idx...)
-    inside = any(r -> inside_annulus(r - view.width/2, r + view.width/2, center(parent(view))[2:3], idx...), view.radii)
+    inside = any(r -> inside_annulus(r - view.width/2, r + view.width/2, center(parent(view))[1:2], idx...), view.radii)
     if inside
         parent(view)[idx...] = val
     else
@@ -73,7 +73,7 @@ Return the `idx`th annulus as a matrix. This is equivalent to unrolling the fram
 # Examples
 
 ```jldoctest
-julia> ann = MultiAnnulusView(ones(10, 101, 101), 5; inner=5, outer=30);
+julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> X = ann(1);
 
@@ -106,7 +106,7 @@ Create a generator for each annulus in the view. If `asview` is true, the annuli
 
 # Examples
 ```jldoctest
-julia> ann = MultiAnnulusView(ones(10, 101, 101), 5; inner=5, outer=30);
+julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> [size(X) for X in eachannulus(ann)]
 5-element Array{Tuple{Int64,Int64},1}:
@@ -131,7 +131,7 @@ Copy the pixels from `mat` into the pixels in the `idx`th annulus. `mat` should 
 Update a single annulus-
 
 ```jldoctest
-julia> ann = MultiAnnulusView(ones(10, 101, 101), 5; inner=5, outer=30);
+julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> X = ann(1);
 
@@ -144,7 +144,7 @@ true
 update each annulus-
 
 ```jldoctest
-julia> ann = MultiAnnulusView(ones(10, 101, 101), 5; inner=5, outer=30);
+julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> Xs = [-X for X in eachannulus(ann)];
 
@@ -208,7 +208,7 @@ Generate a cube similar to the view using the given pixel matrices. The pixels f
 Expand a single annulus-
 
 ```jldoctest ann
-julia> ann = MultiAnnulusView(ones(10, 101, 101), 5; inner=5, outer=30);
+julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> X = ann(1);
 
