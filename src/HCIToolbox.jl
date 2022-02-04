@@ -38,10 +38,10 @@ include("geometry/geometry.jl")
 # include("inject.jl")
 
 # # Utilities for mask design
-# include("masking.jl")
-# include("angles.jl")
+include("masking.jl")
+include("angles.jl")
 
-# include("scaling.jl")
+include("scaling.jl")
 
 
 end
