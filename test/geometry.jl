@@ -1,7 +1,7 @@
 
 
 @testset "AnnulusView" begin
-    data = ones(10, 501, 501)
+    data = ones(501, 501, 10)
 
     av = AnnulusView(data; inner=10, outer=30)
     
@@ -20,7 +20,7 @@
 
     @test -10π * (av.rmax^2 - av.rmin^2) ≈ sum(sub_cube) rtol=1/sqrt(count(!iszero, sub_cube))
 
-    data = randn(rng, 10, 501, 501)
+    data = randn(rng, 501, 501, 10)
 
     @test AnnulusView(data; inner=0, outer=Inf) ≈ data
 
@@ -31,7 +31,7 @@ end
 
 
 @testset "MultiAnnulusView" begin
-    data = ones(10, 501, 501)
+    data = ones(501, 501, 10)
     fwhm = 5
     av = MultiAnnulusView(data, fwhm; inner=10, outer=30)
 
@@ -67,7 +67,7 @@ end
 
     @test -area ≈ sum(sub_cube) rtol=1/sqrt(count(!iszero, sub_cube))
 
-    data = randn(rng, 10, 501, 501)
+    data = randn(rng, 501, 501, 10)
 
     @test MultiAnnulusView(data, fwhm; inner=0, outer=Inf) ≈ data
 

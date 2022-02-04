@@ -12,8 +12,8 @@
         @test filter(!isnan, A) == filter(!isnan, B)
 
         # cubes
-        A = @inferred mask_circle(ones(3, 100, 100), 5, fill=NaN)
-        B = @inferred mask_circle!(ones(3, 100, 100), 5, fill=NaN)
+        A = @inferred mask_circle(ones(100, 100, 3), 5, fill=NaN)
+        B = @inferred mask_circle!(ones(100, 100, 3), 5, fill=NaN)
         @test filter(!isnan, A) == filter(!isnan, B)
 
 
@@ -30,7 +30,7 @@
         A = @inferred mask_annulus(ones(100, 100), 3, 6, fill=NaN)
         B = @inferred mask_annulus!(ones(100, 100), 3, 6, fill=NaN)
         @test filter(!isnan, A) == filter(!isnan, B)
-        @test_throws MethodError mask_annulus!(ones(3, 100, 100), 5)
+        @test_throws MethodError mask_annulus!(ones(100, 100, 3), 5)
     end
 
     # regression check: annulus with inner 0 should be same as circle
