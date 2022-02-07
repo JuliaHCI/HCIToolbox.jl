@@ -101,7 +101,7 @@ julia> flatten(X)
 # See Also
 [`expand`](@ref)
 """
-flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 2) * size(cube, 3), size(cube, 1))
+flatten(cube::AbstractArray{T,3}) where T = reshape(cube, size(cube, 1) * size(cube, 2), size(cube, 3))
 flatten(mat::AbstractMatrix) = mat
 
 """
@@ -298,7 +298,7 @@ Crop a frame to `size`, returning a view of the frame. `size` can be a tuple or 
 # See Also
 [`crop`](@ref)
 """
-function cropview(cube::AbstractArray{T, 3}, size::Tuple; center=center(cube)[[2, 3]], force=false, verbose=true) where T    
+function cropview(cube::AbstractArray{T,3}, size::Tuple; center=center(cube)[1:2], force=false, verbose=true) where T    
     frame_size = (Base.size(cube, 1), Base.size(cube, 2))
     out_size = force ? size : check_size(frame_size, size)
     out_size != size && verbose && @info "adjusted size to $out_size to avoid uneven (odd) cropping"

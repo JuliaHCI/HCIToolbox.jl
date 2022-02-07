@@ -93,8 +93,8 @@ end
 @testset "crop & cropview" begin
     cube = zeros(101, 101, 10)
 
-    @test crop(cube, 51) == crop(cube, (51, 51)) == cube[:, 26:76, 26:76]
-    @test crop(cube, 51, center=(52, 50)) == cube[:, 27:77, 25:75]
+    @test crop(cube, 51) == crop(cube, (51, 51)) == cube[26:76, 26:76, :]
+    @test crop(cube, 51, center=(52, 50)) == cube[27:77, 25:75, :]
 
     @test size(crop(cube, 51)) == (51, 51, 10)
     @test_logs (:info, "adjusted size to (51, 51) to avoid uneven (odd) cropping") begin
