@@ -1,5 +1,4 @@
 using ImageTransformations: center
-using Compat
 
 """
     mask_circle!(::AbstractMatrix, npix; fill=0, center=center(arr))
@@ -7,15 +6,17 @@ using Compat
 
 In-place version of [`mask_circle`](@ref)
 """
-function mask_circle!(arr::AbstractMatrix, npix; fill = 0, center=center(arr))
-    x, y = axes(arr)
-    xc, yc = center
-    d = @. sqrt((x - xc)^2 + (y' - yc)^2)
-    @. arr[d < npix] = fill
+function mask_circle!(arr::AbstractMatrix{T}, npix; fill=zero(T), center=center(arr)) where T
+    @inbounds for idx in CartesianIndices(arr)
+        d = sqrt((idx.I[1] - center[1])^2 + (idx.I[2] - center[2])^2)
+        if d < npix
+            arr[idx] = fill
+        end
+    end
     return arr
 end
 
-function mask_circle!(cube::AbstractArray{T, 3}, npix; kwargs...) where T
+function mask_circle!(cube::AbstractArray{T,3}, npix; kwargs...) where T
     @inbounds for i in axes(cube, 3)
         slice = @view cube[:, :, i]
         mask_circle!(slice, npix; kwargs...)
@@ -32,19 +33,21 @@ Mask the inner-circle of an image with radius `npix` with value `fill`. Note tha
 # See Also
 [`mask_circle!`](@ref)
 """
-mask_circle(arr::AbstractMatrix, npix; kwargs...) = mask_circle!(deepcopy(arr), npix; kwargs...)
-mask_circle(cube::AbstractArray{T, 3}, npix; kwargs...) where T = mask_circle!(deepcopy(cube), npix; kwargs...)
+mask_circle(arr::AbstractMatrix, npix; kwargs...) = mask_circle!(copy(arr), npix; kwargs...)
+mask_circle(cube::AbstractArray{T,3}, npix; kwargs...) where T = mask_circle!(copy(cube), npix; kwargs...)
 
 """
     mask_annulus!(::AbstractMatrix, npix_in, npix_out; fill=0, center=center(arr))
 
 In-place version of [`mask_annulus`](@ref)
 """
-function mask_annulus!(arr::AbstractMatrix, npix_in, npix_out; fill = 0, center=center(arr))
-    x, y = axes(arr)
-    xc, yc = center
-    d = @. sqrt((x - xc)^2 + (y' - yc)^2)
-    @. arr[npix_in ≤ d < npix_out] = fill
+function mask_annulus!(arr::AbstractMatrix{T}, npix_in, npix_out; fill = zero(T), center=center(arr)) where T
+    @inbounds for idx in CartesianIndices(arr)
+        d = sqrt((idx.I[1] - center[1])^2 + (idx.I[2] - center[2])^2)
+        if npix_in ≤ d < npix_out
+            arr[idx] = fill
+        end
+    end
     return arr
 end
 
@@ -58,7 +61,7 @@ Note that the input type must be compatible with the fill value's type.
 # See Also
 [`mask_annulus!`](@ref)
 """
-mask_annulus(arr::AbstractMatrix, npix_in, npix_out; kwargs...) = mask_annulus!(deepcopy(arr), npix_in, npix_out; kwargs...)
+mask_annulus(arr::AbstractMatrix, npix_in, npix_out; kwargs...) = mask_annulus!(copy(arr), npix_in, npix_out; kwargs...)
 
 """
     get_annulus_segments(data, inner_radius, width, [nsegments];
@@ -100,7 +103,7 @@ function get_annulus_segments(data, inner_radius, width, nsegments; theta_init=0
 end
 
 
-@compat get_annulus_segments(data, inner_radius, width; kwargs...) = get_annulus_segments(data, inner_radius, width, 1; kwargs...) |> only
+get_annulus_segments(data, inner_radius, width; kwargs...) = get_annulus_segments(data, inner_radius, width, 1; kwargs...) |> only
 
 
 _convert_mask(::Val{:mask}, mask, data) = mask

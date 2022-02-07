@@ -14,7 +14,6 @@ export derotate,
        mask_annulus,
        normalize_par_angles,
        normalize_par_angles!,
-       CubeGenerator,
        inject,
        inject!,
        scale,
@@ -29,8 +28,7 @@ export derotate,
        MultiAnnulusView,
        eachannulus,
        inverse!,
-       inverse,
-       Polar
+       inverse
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
