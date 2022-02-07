@@ -58,7 +58,7 @@ julia> ann = AnnulusView(ones(101, 101, 10); inner=5, outer=20);
 julia> X = ann();
 
 julia> size(X)
-(10, 1188)
+(1188, 10)
 ```
 """
 function (view::AnnulusView)(asview=false)

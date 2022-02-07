@@ -78,12 +78,12 @@ julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 julia> X = ann(1);
 
 julia> size(X)
-(10, 248)
+(248, 10)
 
 julia> X2 = ann(2);
 
 julia> size(X2)
-(10, 404)
+(404, 10)
 ```
 
 # See also
@@ -109,12 +109,12 @@ Create a generator for each annulus in the view. If `asview` is true, the annuli
 julia> ann = MultiAnnulusView(ones(101, 101, 10), 5; inner=5, outer=30);
 
 julia> [size(X) for X in eachannulus(ann)]
-5-element Array{Tuple{Int64,Int64},1}:
- (10, 248)
- (10, 404)
- (10, 560)
- (10, 716)
- (10, 880)
+5-element Vector{Tuple{Int64, Int64}}:
+ (248, 10)
+ (404, 10)
+ (560, 10)
+ (716, 10)
+ (880, 10)
 ```
 """
 eachannulus(view::MultiAnnulusView, asview=false) = (view(i, asview) for i in 1:length(view.indices))

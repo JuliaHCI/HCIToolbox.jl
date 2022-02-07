@@ -22,22 +22,22 @@ If `method` is `:deweight`, the method of _Bottom et al. 2017_ will be used in w
 julia> X = ones(3, 3, 2);
 
 julia> collapse(X)
-3×3 Array{Float64,2}:
+3×3 Matrix{Float64}:
  1.0  1.0  1.0
  1.0  1.0  1.0
  1.0  1.0  1.0
 
 julia> collapse(X, [0, 90])
-3×3 Array{Float64,2}:
- 0.5  1.0  0.5
+3×3 Matrix{Float64}:
+ 1.0  1.0  0.5
  1.0  1.0  1.0
- 0.5  1.0  0.5
+ 0.5  0.5  0.5
 
 julia> collapse(X, [0, 90], fill=NaN)
-3×3 Array{Float64,2}:
- NaN    1.0  NaN
-   1.0  1.0    1.0
- NaN    1.0  NaN
+3×3 Matrix{Float64}:
+   1.0    1.0  NaN
+   1.0    1.0    1.0
+ NaN    NaN    NaN
 
 ```
 
@@ -92,10 +92,11 @@ Given a cube of size `(x, y, n)` returns a matrix with size `(x * y, n)` where e
 julia> X = ones(2, 2, 3);
 
 julia> flatten(X)
-3×4 Array{Float64,2}:
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
+4×3 Matrix{Float64}:
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
 ```
 
 # See Also
@@ -114,13 +115,14 @@ Will throw an error if `z` is not a perfect square.
 # Examples
 ```jldoctest
 julia> X = ones(4, 3)
-3×4 Array{Float64,2}:
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
+4×3 Matrix{Float64}:
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
 
 julia> expand(X)[:, :, 1]
-2×2 Array{Float64,2}:
+2×2 Matrix{Float64}:
  1.0  1.0
  1.0  1.0
 ```
@@ -181,15 +183,15 @@ This will rotate frame `i` counter-clockwise. Any values outside the original ax
 julia> X = zeros(3, 3, 1); X[2, 1, 1] = 1;
 
 julia> X[:, :, 1]
-3×3 Array{Float64,2}:
- 0.0  1.0  0.0
+3×3 Matrix{Float64}:
  0.0  0.0  0.0
+ 1.0  0.0  0.0
  0.0  0.0  0.0
 
 julia> derotate(X, [90])[:, :, 1]
-3×3 Array{Float64,2}:
- 0.0  3.22941e-16  0.0
- 0.0  0.0          0.999991
+3×3 Matrix{Float64}:
+ 0.0  0.0          0.0
+ 0.0  4.44089e-16  0.0
  0.0  0.0          0.0
 ```
 
@@ -212,16 +214,16 @@ Shifts `frame` by `dx` and `dy` with bilinear interpolation. If necessary, empty
 # Examples
 ```jldoctest
 julia> shift_frame([0 0 0; 0 1 0; 0 0 0], 1, -1)
-3×3 Array{Float64,2}:
- 0.0  0.0  1.0
+3×3 Matrix{Float64}:
  0.0  0.0  0.0
  0.0  0.0  0.0
+ 1.0  0.0  0.0
 
 julia> shift_frame(ans, (-1, 1), fill=NaN)
-3×3 Array{Float64,2}:
- NaN    NaN    NaN
-   0.0    1.0  NaN
-   0.0    0.0  NaN
+3×3 Matrix{Float64}:
+ NaN    0.0    0.0
+ NaN    1.0    0.0
+ NaN  NaN    NaN
 ```
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T

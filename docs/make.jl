@@ -28,7 +28,7 @@ makedocs(;
         "Signal Injection" => "inject.md",
         "Utilites" => "utils.md",
         "Index" => "api.md"
-    ]
+    ],
 )
 
 deploydocs(;

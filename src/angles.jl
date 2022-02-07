@@ -25,7 +25,7 @@ Ensures parallactic angle list (in degrees) is positive monotonic with no jumps 
 # Examples
 ```jldoctest
 julia> normalize_par_angles([-10, 20, 190])
-3-element Array{Int64,1}:
+3-element Vector{Int64}:
  350
   20
  190
