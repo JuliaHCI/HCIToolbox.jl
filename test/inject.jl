@@ -24,26 +24,34 @@ using PSFModels
     end
 end
 
-# @testset "inject av - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]
-#     cube = AnnulusView(zeros(10, 21, 21))
-#     angles = 90ones(10)
+@testset "inject - AnnulusView" begin
+    cube = AnnulusView(zeros(21, 21, 10))
+    angles = 90 .* ones(10)
 
-#     c = inject(cube, kernel, angles; x=11, y=11)
-#     c2 = inject(cube, kernel, angles; x=11, y=11)
-#     @test c ≈ c2
-#     @test c isa AnnulusView && c2 isa AnnulusView
+    kernel = [0 0 0; 0 1 0; 0 0 0]
+    c = inject(cube, kernel, angles; x=11, y=11)
+    @test c isa AnnulusView
+    @test all(c[11, 11, :] .≈ 1)
 
-#     gen = CubeGenerator(cube, angles, kernel)
-#     flat = gen(cube(), (11, 11))
-#     @test flat ≈ c()
-# end
+    @testset "synthetic psf - $mod" for mod in [gaussian, moffat, airydisk]
+        c = inject(cube, mod, angles; x=11, y=11, fwhm=3)
+        @test c isa AnnulusView
+        @test all(c[11, 11, :] .≈ 1)
+    end
+end
 
-# @testset "inject mav - $(typeof(kernel))" for kernel in [[0 0 0; 0 1 0; 0 0 0], Gaussian(1e-2)]
-#     cube = MultiAnnulusView(zeros(10, 21, 21), 2)
-#     angles = 90ones(10)
+@testset "inject - MultiAnnulusView" begin
+    cube = MultiAnnulusView(zeros(21, 21, 10), 5)
+    angles = 90 .* ones(10)
 
-#     c = inject(cube, angles, kernel, (11, 11))
-#     c2 = inject(cube, angles, kernel, Polar(0, 0))
-#     @test c ≈ c2
-#     @test c isa MultiAnnulusView && c2 isa MultiAnnulusView
-# end
+    kernel = [0 0 0; 0 1 0; 0 0 0]
+    c = inject(cube, kernel, angles; x=11, y=11)
+    @test c isa MultiAnnulusView
+    @test all(c[11, 11, :] .≈ 1)
+
+    @testset "synthetic psf - $mod" for mod in [gaussian, moffat, airydisk]
+        c = inject(cube, mod, angles; x=11, y=11, fwhm=3)
+        @test c isa MultiAnnulusView
+        @test all(c[11, 11, :] .≈ 1)
+    end
+end

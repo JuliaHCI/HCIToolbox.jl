@@ -151,7 +151,7 @@ function derotate!(cube::AbstractArray{T,3},
                    degree=Linear()) where T
     Threads.@threads for i in axes(cube, 3)
         frame = @view cube[:, :, i]
-        frame .= imrotate(frame, -deg2rad(angles[i]), axes(frame), degree, fill)
+        frame .= imrotate(frame, -deg2rad(angles[i]), axes(frame); method=degree, fillvalue=fill)
     end
     return cube
 end
@@ -165,7 +165,7 @@ function derotate(frame::AbstractMatrix{T},
                    angle;
                    fill=zero(T),
                    degree=Linear()) where T
-    return imrotate(frame, -deg2rad(angle), axes(frame), degree, fill)
+    return imrotate(frame, -deg2rad(angle), axes(frame); method=degree, fillvalue=fill)
 end
 
 
@@ -226,7 +226,7 @@ julia> shift_frame(ans, (-1, 1), fill=NaN)
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
     tform = Translation(-dx, -dy)
-    return warp(frame, tform, axes(frame), fill)
+    return warp(frame, tform, axes(frame); fillvalue=fill)
 end
 shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(frame, dpos...; fill=fill)
 
@@ -239,8 +239,8 @@ Shift each frame of `cube` by `dx` and `dy`, which can be integers or vectors. T
 # See Also
 [`shift_frame!`](@ref)
 """
-shift_frame(cube::AbstractArray{T, 3}, dx, dy; fill=zero(T)) where T = shift_frame!(copy(cube), dx, dy; fill=fill)
-shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame!(copy(cube), dpos; fill=fill)
+shift_frame(cube::AbstractArray{T,3}, dx, dy; fill=zero(T)) where T = shift_frame!(copy(cube), dx, dy; fill=fill)
+shift_frame(cube::AbstractArray{T,3}, dpos; fill=zero(T)) where T = shift_frame!(copy(cube), dpos; fill=fill)
 
 """
     shift_frame!(cube, dx, dy; fill=0)
@@ -248,32 +248,32 @@ shift_frame(cube::AbstractArray{T, 3}, dpos; fill=zero(T)) where T = shift_frame
 
 In-place version of [`shift_frame`](@ref) which modifies `cube`.
 """
-function shift_frame!(cube::AbstractArray{T, 3}, dx::Number, dy::Number; fill=zero(T)) where T
+function shift_frame!(cube::AbstractArray{T,3}, dx::Number, dy::Number; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         tform = Translation(-dx, -dy)
-        frame .= warp(frame, tform, axes(frame), fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
     end
     return cube
 end
 
-shift_frame!(cube::AbstractArray{T, 3}, dpos::Tuple; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
+shift_frame!(cube::AbstractArray{T,3}, dpos::Tuple; fill=zero(T)) where T = shift_frame!(cube, dpos...; fill=fill)
 
-function shift_frame!(cube::AbstractArray{T, 3}, dx::AbstractVector, dy::AbstractVector; fill=zero(T)) where T
+function shift_frame!(cube::AbstractArray{T,3}, dx::AbstractVector, dy::AbstractVector; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         tform = Translation(-dx[idx], -dy[idx])
-        frame .= warp(frame, tform, axes(frame), fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
     end
     return cube
 end
 
-function shift_frame!(cube::AbstractArray{T, 3}, dpos::AbstractVector{<:Tuple}; fill=zero(T)) where T
+function shift_frame!(cube::AbstractArray{T,3}, dpos::AbstractVector{<:Tuple}; fill=zero(T)) where T
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         dx, dy = dpos[idx]
         tform = Translation(-dx, -dy)
-        frame .= warp(frame, tform, axes(frame), fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
     end
     return cube
 end

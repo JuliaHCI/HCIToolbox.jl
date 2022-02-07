@@ -66,31 +66,31 @@ julia> inject(zeros(5, 5), airydisk, 45; x=4, y=3, amp=2, fwhm=2, ratio=0.3)
 inject(frame::AbstractMatrix, args...; kwargs...) = inject!(copy(frame), args...; kwargs...)
 
 function inject!(frame::AbstractMatrix, kernel::AbstractMatrix{T}, args...; degree=Linear(), fill=zero(T), kwargs...) where T
-    etp = ImageTransformations.box_extrapolation(kernel, degree, fill)
+    etp = ImageTransformations.box_extrapolation(kernel; method=degree, fillvalue=fill)
     return inject!(frame, etp, args...; kwargs...)
 end
 
-function inject!(frame::AbstractMatrix{T}, kernel::AbstractExtrapolation, angle=0; x, y, amp=one(T), center=center(frame)) where T
+function inject!(frame::AbstractMatrix{T}, kernel::AbstractExtrapolation, angle=0; x, y, amp=one(T), center=center(frame), inds=CartesianIndices(frame)) where T
     if iszero(angle)
         idxmap = identity
     else
         idxmap = recenter(RotMatrix{2}(-deg2rad(angle)), center)
     end
     tform = Translation(ImageTransformations.center(kernel) .- (x, y)) ∘ idxmap
-    @inbounds for idx in CartesianIndices(frame)
+    @inbounds for idx in inds
         point = tform(SVector(idx.I))
         frame[idx] += amp * kernel(point...)
     end
     return frame
 end
 
-function inject!(frame::AbstractMatrix{T}, psfmodel, angle=0; center=center(frame), kwargs...) where T
+function inject!(frame::AbstractMatrix{T}, psfmodel, angle=0; center=center(frame), inds=CartesianIndices(frame), kwargs...) where T
     if iszero(angle)
         idxmap = identity
     else
         idxmap = recenter(RotMatrix{2}(-deg2rad(angle)), center)
     end
-    @inbounds for idx in CartesianIndices(frame)
+    @inbounds for idx in inds
         point = idxmap(SVector(idx.I))
         frame[idx] += psfmodel(T, point; kwargs...)
     end
@@ -120,6 +120,29 @@ function inject!(cube::AbstractArray{T,3}, kernel, angles=Zeros(size(cube, 3)); 
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         inject!(frame, kernel, angles[idx]; kwargs...)
+    end
+    return cube
+end
+
+function inject!(cube::AnnulusView{T}, kernel, angles=Zeros(size(cube, 3)); kwargs...) where T
+    # All zeros position angles is actually 90° parallactic angle
+    @inbounds for idx in cube.indices[2]
+        # relies on the fact that the underlying data can still be modified
+        frame = @view cube[:, :, idx]
+        inject!(frame, kernel, angles[idx]; inds=cube.indices[1], kwargs...)
+    end
+    return cube
+end
+
+function inject!(cube::MultiAnnulusView{T}, kernel, angles=Zeros(size(cube, 3)); kwargs...) where T
+    # All zeros position angles is actually 90° parallactic angle
+    @inbounds for annidx in cube.indices
+        for idx in annidx[2]
+            inds = annidx[1]
+            # relies on the fact that the underlying data can still be modified
+            frame = @view cube[:, :, idx]
+            inject!(frame, kernel, angles[idx]; inds, kwargs...)
+        end
     end
     return cube
 end

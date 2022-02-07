@@ -40,7 +40,7 @@ end
     X = zeros(3, 3, 1)
     X[2, 1, 1] = 1
     # expect the 1 to rotate 90° ccw physical, cw image
-    @test derotate(X, [90])[3, 2, 1] ≈ 1 rtol=1e-3
+    @test derotate(X, [-90])[1, 2, 1] ≈ 1 rtol=1e-3
 
 end
 
@@ -75,13 +75,12 @@ end
 
     @test shift_frame(X, 1, 1, fill=NaN)[3, 1] === NaN
 
-
     # cube
-    cube = zeros(3, 3, 10)
-    cube[2, 2, :] .= 1
+    cube = zeros(5, 5, 10)
+    cube[3, 3, :] .= 1
     for dx in -1:1, dy in -1:1
-        row = 2 + dx
-        col = 2 + dy
+        row = 3 + dx
+        col = 3 + dy
         @test shift_frame(cube, dx, dy)[row, col, :] == ones(10)
         shift_frame(cube, (dx, dy)) == shift_frame(cube, dx, dy)
         shift_frame(cube, fill(dx, 10), fill(dy, 10)) == shift_frame(cube, dx, dy)
