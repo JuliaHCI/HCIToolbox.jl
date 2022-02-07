@@ -7,20 +7,14 @@ using ImageTransformations
 using Interpolations
 using StaticArrays
 
-using PSFModels: PSFModel
-
-export normalize_psf, normalize_psf!
-
-const PSFType = Union{AbstractExtrapolation,PSFModel}
-
-struct CubeGenerator{CT<:AbstractArray,PT<:PSFType,AT<:AbstractVector}
+struct CubeGenerator{CT<:AbstractArray,PT,AT<:AbstractVector}
     cube::CT
     angles::AT
     psf::PT
 end
 
 """
-    CubeGenerator(cube, angles, psf; degree=Linear(), fill=0)
+    CubeGenerator(cube, angles, psf; degree=Linear(), fill=0; kwargs...)
 
 Creates a generator which can rapidly create synthetic data using a PSF. The `cube` and `angles` are used to define the geometry of the synthetic data cube. If the `psf` is a dense matrix, an extrapolator will be created with the given `degree` and `fill` value.
 
@@ -33,23 +27,23 @@ julia> cube, angles, psf = BetaPictoris[:cube, :pa, :psf];
 
 julia> gen = CubeGenerator(cube, angles, psf); # using empirical PSF
 
-julia> using PSFModels: Gaussian
+julia> using PSFModels
 
-julia> gen2 = CubeGenerator(cube, angles, Gaussian(4.7)); # using PSFModel
+julia> gen2 = CubeGenerator(cube, angles, gaussian, fwhm=4.7); # using PSFModel
 ```
 """
 function CubeGenerator(cube, angles, psf; kwargs...)
     if size(cube, 1) != length(angles)
         error("Number of frames in cube does not match number of parallactic angles")
     end
-    psf′ = prep_psf(psf; kwargs...)
-    return CubeGenerator(cube, angles, psf′)
+    psf = prep_psf(psf; kwargs...)
+    return CubeGenerator(cube, angles, psf)
 end
 
 function prep_psf(psf::AbstractMatrix{T}; degree=Linear(), fill=zero(T)) where T
     return ImageTransformations.box_extrapolation(psf, degree, fill)
 end
-prep_psf(psf::PSFModel; kwargs...) = psf
+prep_psf(psf; kwargs...) = psf, kwargs
 
 """
     (::CubeGenerator)([T], pos; A=1)
@@ -89,17 +83,17 @@ function (gen::CubeGenerator)(T::Type, pos; kwargs...)
 end
 
 function (gen::CubeGenerator)(base::AbstractArray{T,3}, pos; A=one(T)) where T
-    ctr = reverse(center(base)[2:3])
-    Threads.@threads for tidx in axes(base, 1)
+    ctr = reverse(center(base)[1:2])
+    Threads.@threads for tidx in axes(base, 3)
         location = parse_position(pos, ctr, gen.angles[tidx])
 
-        frame = @view base[tidx, :, :]
+        frame = @view base[:, :, tidx]
         tform = Translation(center(gen.psf) - location)
         tform = ImageTransformations.try_static(tform, frame)
         for idx in CartesianIndices(frame)
             pidx = tform(SVector(idx.I))
             if gen.psf isa PSFModel
-                frame[idx] += A * gen.psf(Tuple(reverse(pidx))...)
+                frame[idx] += A * gen.psf(Tuple(pidx))...
             else
                 frame[idx] += A * gen.psf(Tuple(pidx)...)
             end
@@ -109,7 +103,7 @@ function (gen::CubeGenerator)(base::AbstractArray{T,3}, pos; A=one(T)) where T
 end
 
 function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
-    ctr = reverse(center(gen.cube)[2:3])
+    ctr = center(gen.cube)[2:3]
     ny, nx = size(gen.cube)[2:3]
     Threads.@threads for tidx in axes(base, 1)
         location = parse_position(pos, ctr, gen.angles[tidx])
@@ -119,7 +113,7 @@ function (gen::CubeGenerator)(base::AbstractMatrix{T}, pos; A=one(T)) where T
             k = (pidx - 1) ÷ nx + 1
             I = tform(SVector(j, k))
             if gen.psf isa PSFModel
-                base[tidx, pidx] += A * gen.psf(Tuple(reverse(I))...)
+                base[tidx, pidx] += A * gen.psf(Tuple(I))...
             else
                 base[tidx, pidx] += A * gen.psf(Tuple(I)...)
             end
@@ -135,7 +129,7 @@ function (gen::CubeGenerator{<:AnnulusView})(base::AbstractArray{T,3}, pos; A=on
 end
 
 function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one(T)) where T
-    ctr = reverse(center(gen.cube)[2:3])
+    ctr = center(gen.cube)[2:3]
     Threads.@threads for tidx in axes(base, 1)
         tidx′ = gen.cube.indices[1][tidx]
         location = parse_position(pos, ctr, gen.angles[tidx′])
@@ -143,7 +137,7 @@ function (gen::CubeGenerator{<:AnnulusView})(base::AbstractMatrix{T}, pos; A=one
         for (pidx, pidx′) in zip(axes(base, 2), gen.cube.indices[2])
             I = tform(SVector(pidx′.I))
             if gen.psf isa PSFModel
-                base[tidx, pidx] += A * gen.psf(Tuple(reverse(I))...)
+                base[tidx, pidx] += A * gen.psf(Tuple(I))...
             else
                 base[tidx, pidx] += A * gen.psf(Tuple(I)...)
             end
@@ -160,8 +154,7 @@ Parse the position as the cartesian `(x, y)` pixel coordinates. If a parallactic
 function parse_position(pos::Tuple, ctr, pa=0)
     xy = SVector(pos)
     ϕ = RotMatrix{2}(-deg2rad(pa))
-    return recenter(ϕ, ctr)(xy) |> reverse
-end
+    return recenter(ϕ, ctr)(xy) |> en
 
 """
     HCIToolbox.parse_position(pos::Polar, ctr, pa=0)
@@ -172,8 +165,7 @@ function parse_position(pos::Polar, ctr, pa=0)
     new_pos = Polar(pos.r, pos.θ - deg2rad(pa))
     Δxy = convert(SVector, new_pos)
     # recenter and switch to index layout
-    return  Δxy |> Translation(ctr) |> reverse
-end
+    return  Δxy |> Translation(ctr) |> en
 
 ################################
 
@@ -218,7 +210,7 @@ function inject!(frame::AbstractMatrix, kernel::AbstractMatrix{T}, pos; degree=L
 end
 
 function inject!(frame::AbstractMatrix{T}, psf::PSFType, pos; A=one(T)) where T
-    ctr = reverse(center(frame))
+    ctr = center(frame)
     location = parse_position(pos, ctr)
     tform = Translation(center(psf) - location)
     tform = ImageTransformations.try_static(tform, frame)
@@ -264,12 +256,3 @@ end
 function inject!(cube::AbstractArray{T,3}, gen::CubeGenerator, pos; A=one(T)) where T
     return gen(cube, pos; A=A)
 end
-
-###################
-
-function normalize_psf!(psf::AbstractMatrix, fwhm, factor=1)
-    ap = CircularAperture(center(psf), factor * fwhm / 2)
-    area = photometry(ap, psf).aperture_sum
-    return psf ./= area
-end
-normalize_psf(psf, fwhm, factor=1) = normalize_psf!(deepcopy(psf), fwhm, factor)
