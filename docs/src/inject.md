@@ -13,5 +13,4 @@ Pages = ["inject.md"]
 ```@docs
 inject
 inject!
-CubeGenerator
 ```

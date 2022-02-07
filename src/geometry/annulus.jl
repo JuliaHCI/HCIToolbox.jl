@@ -9,28 +9,28 @@ end
 
 """
     AnnulusView(cube::AbstractArray{T,3};
-                inner=0, outer=last(size(parent))/2 + 0.5,
+                inner=0, outer=first(size(parent))/2 + 0.5,
                 fill=0)
 
 Cut out an annulus with inner radius `inner` and outer radius `outer`. Values that fall outside of this region will be replaced with `fill`. This does not copy any data, it is merely a view into the data.
 """
 function AnnulusView(parent::AbstractArray{T,3};
                      inner=0,
-                     outer=(size(parent, 3) + 1) / 2,
+                     outer=(size(parent, 1) + 1) / 2,
                      fill=zero(T)) where T
     # check inputs
     0 ≤ inner < outer || error("Invalid annulus region [$inner, $outer]")
-    time_axis = axes(parent, 1)
-    space_indices = CartesianIndices((axes(parent, 2), axes(parent, 3)))
-    space_axis = filter(idx -> inside_annulus(inner, outer, center(parent)[2:3], idx), space_indices)
-    return AnnulusView(parent, Float64(inner), Float64(outer), (time_axis, space_axis), T(fill))
+    time_axis = axes(parent, 3)
+    space_indices = CartesianIndices((axes(parent, 1), axes(parent, 2)))
+    space_axis = filter(idx -> inside_annulus(inner, outer, center(parent)[1:2], idx), space_indices)
+    return AnnulusView(parent, Float64(inner), Float64(outer), (space_axis, time_axis), T(fill))
 end
 
 Base.parent(view::AnnulusView) = view.parent
 Base.size(view::AnnulusView) = size(parent(view))
 Base.copy(view::AnnulusView) = AnnulusView(copy(parent(view)), view.rmin, view.rmax, view.indices, view.fill)
 
-inside_annulus(view::AnnulusView, args...) = inside_annulus(view.rmin, view.rmax, center(view)[2:3], args...)
+inside_annulus(view::AnnulusView, args...) = inside_annulus(view.rmin, view.rmax, center(view)[1:2], args...)
 
 @propagate_inbounds function Base.getindex(view::AnnulusView{T,N}, idx::Vararg{<:Integer,N}) where {T,N}
     @boundscheck checkbounds(parent(view), idx...)
@@ -53,12 +53,12 @@ Return the pixels that fall within the annulus as a matrix. This matrix is equiv
 
 # Examples
 ```jldoctest
-julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+julia> ann = AnnulusView(ones(101, 101, 10); inner=5, outer=20);
 
 julia> X = ann();
 
 julia> size(X)
-(10, 1188)
+(1188, 10)
 ```
 """
 function (view::AnnulusView)(asview=false)
@@ -76,7 +76,7 @@ Copy the pixels from `mat` into the pixels in the annulus. `mat` should have the
 
 # Examples
 ```jldoctest
-julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+julia> ann = AnnulusView(ones(101, 101, 10); inner=5, outer=20);
 
 julia> X = ann();
 
@@ -109,7 +109,7 @@ Generate a cube similar to the view with the pixels from `mat`. `mat` should hav
 
 # Examples
 ```jldoctest
-julia> ann = AnnulusView(ones(10, 101, 101); inner=5, outer=20);
+julia> ann = AnnulusView(ones(101, 101, 10); inner=5, outer=20);
 
 julia> X = ann();
 
