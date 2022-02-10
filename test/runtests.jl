@@ -12,4 +12,5 @@ rng = StableRNG(8799)
     include("inject.jl")
     include("scaling.jl")
     include("geometry.jl")
+    include("profiles.jl")
 end

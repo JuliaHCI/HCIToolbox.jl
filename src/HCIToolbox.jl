@@ -28,7 +28,9 @@ export derotate,
        MultiAnnulusView,
        eachannulus,
        inverse!,
-       inverse
+       inverse,
+       # profiles
+       radial_profile
 
 # Utilities for dealing with cubes like derotating and median combining
 include("morphology.jl")
@@ -40,6 +42,7 @@ include("masking.jl")
 include("angles.jl")
 
 include("scaling.jl")
+include("profiles.jl")
 
 
 end
