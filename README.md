@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/juliahci/HCIToolbox.jl/workflows/CI/badge.svg?branch=main)](https://github.com/juliahci/HCIToolbox.jl/actions)
 [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/H/HCIToolbox.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html)
 [![Coverage](https://codecov.io/gh/juliahci/HCIToolbox.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/juliahci/HCIToolbox.jl)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/github/license/JuliaHCI/HCIToolbox.jl?color=yellow)](https://opensource.org/licenses/MIT)
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliahci.github.io/HCIToolbox.jl/dev)
