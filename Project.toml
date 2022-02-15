@@ -1,7 +1,7 @@
 name = "HCIToolbox"
 uuid = "b6cd55e5-4d02-4e12-b82c-005f67e784bf"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.6.1"
+version = "0.6.2"
 
 [deps]
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"

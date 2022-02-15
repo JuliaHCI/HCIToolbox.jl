@@ -70,11 +70,11 @@ function inject!(frame::AbstractMatrix, kernel::AbstractMatrix{T}, args...; degr
     return inject!(frame, etp, args...; kwargs...)
 end
 
-function inject!(frame::AbstractMatrix{T}, kernel::AbstractExtrapolation, angle=0; x, y, amp=one(T), center=center(frame), inds=CartesianIndices(frame)) where T
+function inject!(frame::AbstractMatrix{T}, kernel::AbstractExtrapolation, angle=0; x, y, amp=one(T), center=center(frame), inds=CartesianIndices(frame), kwargs...) where T
     if iszero(angle)
         idxmap = identity
     else
-        idxmap = recenter(RotMatrix{2}(-deg2rad(angle)), center)
+        idxmap = recenter(RotMatrix{2}(deg2rad(angle)), center)
     end
     tform = Translation(ImageTransformations.center(kernel) .- (x, y)) ∘ idxmap
     @inbounds for idx in inds
@@ -88,7 +88,7 @@ function inject!(frame::AbstractMatrix{T}, psfmodel, angle=0; center=center(fram
     if iszero(angle)
         idxmap = identity
     else
-        idxmap = recenter(RotMatrix{2}(-deg2rad(angle)), center)
+        idxmap = recenter(RotMatrix{2}(deg2rad(angle)), center)
     end
     @inbounds for idx in inds
         point = idxmap(SVector(idx.I))
