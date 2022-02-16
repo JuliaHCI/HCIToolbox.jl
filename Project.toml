@@ -18,7 +18,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 CoordinateTransformations = "0.5, 0.6"
-FillArrays = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12"
+FillArrays = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13"
 ImageTransformations = "0.9"
 Interpolations = "0.12, 0.13"
 PaddedViews = "0.5"
