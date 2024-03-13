@@ -124,6 +124,16 @@ function inject!(cube::AbstractArray{T,3}, kernel, angles=Zeros(size(cube, 3)); 
     return cube
 end
 
+function inject!(cube::AbstractArray{T,4}, kernel::AbstractArray{V,3}, angles=Zeros(size(cube, 4)); kwargs...) where {T,V}
+    @inbounds for idx in axes(cube, 3)
+        frame = @view cube[:, :, idx, :]
+        kern = @view kernel[:, :, idx]
+        inject!(frame, kern, angles; kwargs...)
+    end
+    return cube
+end
+
+
 function inject!(cube::AnnulusView{T}, kernel, angles=Zeros(size(cube, 3)); kwargs...) where T
     # All zeros position angles is actually 90° parallactic angle
     @inbounds for idx in cube.indices[2]

@@ -1,4 +1,6 @@
 
+using LossFunctions
+using Optim
 using PaddedViews
 
 """
@@ -100,3 +102,33 @@ julia> scale_list([0.5, 2, 4])
 """
 scale_list(wavelengths) = maximum(wavelengths) ./ wavelengths
 
+function optimize_scale_list(spcube::AbstractArray{T,4}, scales, amps=ones(size(spcube, 3)); kwargs...) where T
+    # get temporal median first
+    spframe = median(spcube, dims=4)[:, :, :, 1]
+    return optimize_scale_list(spframe, scales; kwargs...)
+end
+
+function optimize_scale_list(spframe::AbstractArray{T,3}, scales, amps=ones(size(spframe, 3)); mask=trues(size(spframe, 1), size(spframe, 2))) where T
+    reference_frame = @view spframe[:, :, end]
+    N_wl = size(spframe, 3)
+    best_scales = ones(N_wl)
+    best_flux = ones(N_wl)
+    for wl_idx in axes(spframe, 3)[begin:end - 1]
+        current_frame = @view spframe[:, :, wl_idx]
+        func(X) = _scale_opt_func(current_frame, reference_frame, X[begin], X[end], mask)
+        P0 = T[scales[wl_idx], amps[wl_idx]]
+        result = optimize(func, P0, NelderMead(); autodiff=:forward)
+        @info "Finished optimizing (wl=$wl_idx/$N_wl)" result
+        X = Optim.minimizer(result)
+        best_scales[wl_idx] = X[begin]
+        best_flux[wl_idx] = X[end]
+    end
+    return (;scales=best_scales, fluxes=best_flux)
+end
+
+function _scale_opt_func(frame, reference, scale, amp=1, mask=trues(frame))
+    scale < 1 && return Inf
+    scaled_frame = amp .* HCIToolbox.scale(frame, scale)
+    # get loss
+    return sum(L2DistLoss(),  mask .* (scaled_frame .- reference))
+end

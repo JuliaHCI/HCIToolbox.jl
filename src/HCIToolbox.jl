@@ -44,5 +44,6 @@ include("angles.jl")
 include("scaling.jl")
 include("profiles.jl")
 
+include("cutout.jl")
 
 end
