@@ -1,5 +1,6 @@
 using ImageTransformations: center
 using StatsBase
+using NaNMath
 
 """
     radial_profile(image; center=center(image))
@@ -43,4 +44,22 @@ function radial_profile(image::AbstractMatrix; center=center(image))
     radii = collect(keys(binned))
     profile = values(binned) ./ values(nr)
     return radii, profile
+end
+
+robust_radial_profile(image::AbstractMatrix; kwargs...) = robust_radial_profile(NaNMath.median, image; kwargs...)
+
+function robust_radial_profile(func, image::AbstractMatrix; center=center(image), width=1)
+    inds = CartesianIndices(image)
+    distance = map(idx -> round(Int, sqrt((idx.I[1] - center[1])^2 + (idx.I[2] - center[2])^2)), inds)
+    weights = image
+
+    min_dist, max_dist = extrema(distance)
+    bins = collect(min_dist:width:max_dist)
+    vals = map(bins) do bin
+        mask = bin .<= distance .< bin + width
+        any(mask) || return NaN
+        vals = weights[distance .== bin]
+        return func(vals)
+    end
+    return bins, vals
 end
