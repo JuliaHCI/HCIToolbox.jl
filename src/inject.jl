@@ -18,7 +18,7 @@ Injects the `psf` into `frame` at the given position.
 
 ## Matrices
 
-If you pass an `AbstractMatrix` to `inject`, you can optionally specify `degree` and `fill` as keyword arguments. By default, `degree=Interpolations.Linear()` and `fill=0`. These are used to create an `Interpolations.AbstractExtrapolation` type which can be arbitrarily transformed. From here, the `x`, `y`, and `amp` arguments will determine the position and will be optionally rotated `angle` degrees counter-clockwise around the `center`.
+If you pass an `AbstractMatrix` to `inject`, you can optionally specify `degree` and `fill` as keyword arguments. By default, `degree=Interpolations.Lanczos(4)` and `fill=0`. These are used to create an `Interpolations.AbstractExtrapolation` type which can be arbitrarily transformed. From here, the `x`, `y`, and `amp` arguments will determine the position and will be optionally rotated `angle` degrees counter-clockwise around the `center`.
 
 ```jldoctest
 julia> inject(zeros(5, 5), ones(1, 1); x=4, y=3, amp=2)
@@ -65,7 +65,7 @@ julia> inject(zeros(5, 5), airydisk, 45; x=4, y=3, amp=2, fwhm=2, ratio=0.3)
 """
 inject(frame::AbstractMatrix, args...; kwargs...) = inject!(copy(frame), args...; kwargs...)
 
-function inject!(frame::AbstractMatrix, kernel::AbstractMatrix{T}, args...; degree=Linear(), fill=zero(T), kwargs...) where T
+function inject!(frame::AbstractMatrix, kernel::AbstractMatrix{T}, args...; degree=Lanczos(4), fill=zero(T), kwargs...) where T
     etp = ImageTransformations.box_extrapolation(kernel; method=degree, fillvalue=fill)
     return inject!(frame, etp, args...; kwargs...)
 end

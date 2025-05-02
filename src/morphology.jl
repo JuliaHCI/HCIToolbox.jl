@@ -7,8 +7,8 @@ using Interpolations
 # Stacking routines
 
 """
-    collapse(cube; method=median, fill=0, degree=Linear())
-    collapse(cube, angles; method=:deweight, fill=0, degree=Linear())
+    collapse(cube; method=median, fill=0, degree=Lanczos(4))
+    collapse(cube, angles; method=:deweight, fill=0, degree=Lanczos(4))
 
 Combine all the frames of a cube using `method`. If `angles` are provided, will use [`derotate`](@ref) before combining.
 
@@ -143,14 +143,14 @@ expand(cube::AbstractArray{T,3}) where {T} = cube
 # Rotation routines
 
 """
-    derotate!(cube, angles; fill=0, degree=Linear())
+    derotate!(cube, angles; fill=0, degree=Lanczos(4))
 
 In-place version of [`derotate`](@ref) which modifies `cube`.
 """
 function derotate!(cube::AbstractArray{T,3},
                    angles::AbstractVector;
                    fill=zero(T),
-                   degree=Linear()) where T
+                   degree=Lanczos(4)) where T
     Threads.@threads for i in axes(cube, 3)
         frame = @view cube[:, :, i]
         frame .= imrotate(frame, -deg2rad(angles[i]), axes(frame); method=degree, fillvalue=fill)
@@ -159,20 +159,20 @@ function derotate!(cube::AbstractArray{T,3},
 end
 
 """
-    derotate(frame, angle; fill=0, degree=Linear())
+    derotate(frame, angle; fill=0, degree=Lanczos(4))
 
 Rotates `frame` counter-clockwise by `angle`, given in degrees. This is merely a convenient wrapper around `ImageTransformations.imrotate`.
 """
 function derotate(frame::AbstractMatrix{T},
                    angle;
                    fill=zero(T),
-                   degree=Linear()) where T
+                   degree=Lanczos(4)) where T
     return imrotate(frame, -deg2rad(angle), axes(frame); method=degree, fillvalue=fill)
 end
 
 
 """
-    derotate(cube, angles; fill=0, degree=Linear())
+    derotate(cube, angles; fill=0, degree=Lanczos(4))
 
 Rotates an array using the given angles in degrees.
 
@@ -228,7 +228,7 @@ julia> shift_frame(ans, (-1, 1), fill=NaN)
 """
 function shift_frame(frame::AbstractMatrix{T}, dx, dy; fill=zero(T)) where T
     tform = Translation(-dx, -dy)
-    return warp(frame, tform, axes(frame); fillvalue=fill)
+    return warp(frame, tform, axes(frame); fillvalue=fill, method=Lanczos(4))
 end
 shift_frame(frame::AbstractMatrix{T}, dpos; fill=zero(T)) where T = shift_frame(frame, dpos...; fill=fill)
 
@@ -254,7 +254,7 @@ function shift_frame!(cube::AbstractArray{T,3}, dx::Number, dy::Number; fill=zer
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         tform = Translation(-dx, -dy)
-        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill, method=Lanczos(4))
     end
     return cube
 end
@@ -265,7 +265,7 @@ function shift_frame!(cube::AbstractArray{T,3}, dx::AbstractVector, dy::Abstract
     @inbounds for idx in axes(cube, 3)
         frame = @view cube[:, :, idx]
         tform = Translation(-dx[idx], -dy[idx])
-        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill, method=Lanczos(4))
     end
     return cube
 end
@@ -275,7 +275,7 @@ function shift_frame!(cube::AbstractArray{T,3}, dpos::AbstractVector{<:Tuple}; f
         frame = @view cube[:, :, idx]
         dx, dy = dpos[idx]
         tform = Translation(-dx, -dy)
-        frame .= warp(frame, tform, axes(frame); fillvalue=fill)
+        frame .= warp(frame, tform, axes(frame); fillvalue=fill, method=Lanczos(4))
     end
     return cube
 end

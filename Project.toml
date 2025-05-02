@@ -1,7 +1,7 @@
 name = "HCIToolbox"
 uuid = "b6cd55e5-4d02-4e12-b82c-005f67e784bf"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.6.4"
+version = "0.6.5"
 
 [deps]
 BiweightStats = "5bf8a1e9-d5f8-4697-9608-80edd97af0ad"
@@ -22,9 +22,9 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 CoordinateTransformations = "0.5, 0.6"
-FillArrays = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13"
-ImageTransformations = "0.9"
-Interpolations = "0.12, 0.13"
+FillArrays = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13, 1"
+ImageTransformations = "0.9,0.10"
+Interpolations = "0.12,0.13,0.14,0.15"
 LossFunctions = "0.11"
 Optim = "1"
 PaddedViews = "0.5"
