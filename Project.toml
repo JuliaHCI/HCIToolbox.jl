@@ -1,7 +1,7 @@
 name = "HCIToolbox"
 uuid = "b6cd55e5-4d02-4e12-b82c-005f67e784bf"
 authors = ["Miles Lucas <mdlucas@hawaii.edu>"]
-version = "0.6.5"
+version = "0.6.4"
 
 [deps]
 BiweightStats = "5bf8a1e9-d5f8-4697-9608-80edd97af0ad"
