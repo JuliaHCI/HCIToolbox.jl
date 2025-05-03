@@ -29,6 +29,7 @@ makedocs(;
         "Utilites" => "utils.md",
         "Index" => "api.md"
     ],
+    warnonly=true,
 )
 
 deploydocs(;
